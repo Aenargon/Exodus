@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ACHERON - PROTOCOLO DE SUPERVIVENCIA</title>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <style>
+        :root {
+            --cold-blue: #a0d2eb;
+            --dim-green: #2ecc71;
+            --crt-green: #00ff41;
+            --bg-dark: #050505;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--crt-green);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            text-transform: uppercase;
+        }
+
+        /* Efecto CRT */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        #header {
+            padding: 10px;
+            border-bottom: 2px solid var(--dim-green);
+            text-align: center;
+            background: rgba(0, 20, 0, 0.5);
+        }
+
+        #main-display {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        #scanner-view {
+            width: 90%;
+            height: 60%;
+            border: 1px solid var(--cold-blue);
+            box-shadow: 0 0 15px var(--cold-blue);
+            position: relative;
+            background: #000;
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #controls {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            background: #0a1a0a;
+            color: var(--crt-green);
+            border: 1px solid var(--crt-green);
+            padding: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: inset 0 0 5px var(--crt-green);
+        }
+
+        button:active {
+            background: var(--crt-green);
+            color: black;
+        }
+
+        .status-box {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            font-size: 0.8rem;
+            background: rgba(0,0,0,0.8);
+            padding: 5px;
+        }
+
+        /* Estilo para los resultados de escaneo */
+        #scan-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 50, 0, 0.7);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <div id="round-timer">T-MINUS: <span id="round-val">10</span> MINUTOS</div>
+    <div style="font-size: 0.6rem;">DISTANCIA SEGURIDAD: <span id="dist-val">0</span>/7</div>
+</div>
+
+<div id="main-display">
+    <div id="scanner-view">
+        <video id="video" autoplay playsinline></video>
+        <div id="scan-overlay">
+            <h2 id="scan-title">ESCANEANDO...</h2>
+            <div id="scan-result" style="font-size: 2rem;">--%</div>
+            <p id="scan-msg">PROCESANDO ADN...</p>
+            <button onclick="closeScan()">CERRAR</button>
+        </div>
+    </div>
+    <div class="status-box">
+        SISTEMA: ONLINE<br>
+        SENSORES: ACTIVOS
+    </div>
+</div>
+
+<div id="controls">
+    <button onclick="startScan('NEURONAL')">SCAN NEURONAL</button>
+    <button onclick="startScan('EM')">SCAN ELECTROMAG.</button>
+    <button onclick="startScan('MUTAGENO')">SCAN MUTÁGENO</button>
+    <button onclick="nextTurn()" style="background: #1a0a0a; border-color: #f00; color: #f00;">FIN TURNO</button>
+</div>
+
+<script>
+    // ESTADO DEL JUEGO
+    let gameState = {
+        round: 1,
+        currentPlayer: 'A',
+        playerRoles: { A: null, B: null }, // Humano, Cyborg, Adaptoid
+        scanHistory: { A: {}, B: {} }, // Guardará intentos por tipo
+        password: []
+    };
+
+    const video = document.getElementById('video');
+    const overlay = document.getElementById('scan-overlay');
+    const resultVal = document.getElementById('scan-result');
+    const scanTitle = document.getElementById('scan-title');
+    const scanMsg = document.getElementById('scan-msg');
+
+    // Inicializar Cámara
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
+        video.srcObject = stream;
+    });
+
+    function startScan(type) {
+        scanTitle.innerText = "ESCANEANDO " + type;
+        overlay.style.display = "flex";
+        
+        // Simulación de lectura QR (En la versión final aquí se activaría jsQR)
+        setTimeout(() => {
+            processScanLogic(type);
+        }, 2000);
+    }
+
+    function processScanLogic(type) {
+        // Lógica de porcentajes según tu diseño
+        let player = gameState.currentPlayer;
+        let roleReal = "HUMANO"; // Esto debería ser asignado al inicio
+        
+        if (!gameState.scanHistory[player][type]) {
+            gameState.scanHistory[player][type] = 1;
+            // Primer escaneo: 50-75% o 0-3%
+            let isClose = (type === "NEURONAL" && roleReal === "HUMANO"); // Ejemplo
+            let percent = isClose ? Math.floor(Math.random() * (75 - 50) + 50) : Math.floor(Math.random() * 3);
+            resultVal.innerText = percent + "%";
+            scanMsg.innerText = "RESULTADO INCONCLUSO. SE REQUIERE SEGUNDO ANÁLISIS.";
+        } else {
+            // Segundo escaneo: 90-100% o 10-30%
+            let isMatch = (type === "NEURONAL" && roleReal === "HUMANO");
+            let percent = isMatch ? Math.floor(Math.random() * (100 - 90) + 90) : Math.floor(Math.random() * (30 - 10) + 10);
+            resultVal.innerText = percent + "%";
+            scanMsg.innerText = percent > 90 ? "NURALEZA CONFIRMADA." : "AMENAZA DESCARTADA.";
+        }
+    }
+
+    function nextTurn() {
+        if (gameState.currentPlayer === 'A') {
+            gameState.currentPlayer = 'B';
+            alert("PASAR DISPOSITIVO AL JUGADOR B");
+        } else {
+            gameState.currentPlayer = 'A';
+            gameState.round++;
+            document.getElementById('round-val').innerText = (11 - gameState.round);
+            alert("RONDA FINALIZADA. COMIENZA RONDA " + gameState.round);
+        }
+    }
+
+    function closeScan() {
+        overlay.style.display = "none";
+    }
+</script>
+</body>
+</html>
