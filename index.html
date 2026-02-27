@@ -3,213 +3,221 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ACHERON - PROTOCOLO DE SUPERVIVENCIA</title>
+    <title>ACHERON CORE - V2.0</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root {
-            --cold-blue: #a0d2eb;
-            --dim-green: #2ecc71;
             --crt-green: #00ff41;
-            --bg-dark: #050505;
+            --cold-blue: #a0d2eb;
+            --danger-red: #ff3e3e;
+            --bg: #050805;
         }
-
         body {
-            background-color: var(--bg-dark);
+            background: var(--bg);
             color: var(--crt-green);
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
+            font-family: 'Courier New', monospace;
+            margin: 0; padding: 0;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
             text-transform: uppercase;
         }
-
-        /* Efecto CRT */
-        body::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
-            z-index: 10;
+        /* Efecto de parpadeo y líneas CRT */
+        .crt-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none; z-index: 1000;
+        }
+        #ui-wrapper { display: flex; flex-direction: column; height: 100vh; }
+        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; text-align: center; font-size: 12px; }
+        #camera-container { position: relative; flex-grow: 1; background: #000; overflow: hidden; border: 2px solid #1a1a1a; }
+        #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+        #canvas { display: none; } /* Canvas oculto para procesamiento */
+        
+        .scan-frame {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 200px; height: 200px; border: 1px solid var(--cold-blue);
+            box-shadow: 0 0 20px rgba(160, 210, 235, 0.3);
+        }
+        
+        #terminal-output {
+            height: 120px; background: rgba(0, 20, 0, 0.9);
+            border-top: 1px solid var(--crt-green);
+            padding: 10px; font-size: 10px; overflow-y: auto;
         }
 
-        #header {
-            padding: 10px;
-            border-bottom: 2px solid var(--dim-green);
-            text-align: center;
-            background: rgba(0, 20, 0, 0.5);
-        }
-
-        #main-display {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
-
-        #scanner-view {
-            width: 90%;
-            height: 60%;
-            border: 1px solid var(--cold-blue);
-            box-shadow: 0 0 15px var(--cold-blue);
-            position: relative;
-            background: #000;
-        }
-
-        #video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        #controls {
-            padding: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; padding: 10px; }
         button {
-            background: #0a1a0a;
-            color: var(--crt-green);
-            border: 1px solid var(--crt-green);
-            padding: 15px;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: inset 0 0 5px var(--crt-green);
+            background: #0a1a0a; color: var(--crt-green); border: 1px solid var(--crt-green);
+            padding: 10px 5px; font-family: inherit; font-size: 10px;
         }
-
-        button:active {
-            background: var(--crt-green);
-            color: black;
-        }
-
-        .status-box {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            font-size: 0.8rem;
-            background: rgba(0,0,0,0.8);
-            padding: 5px;
-        }
-
-        /* Estilo para los resultados de escaneo */
-        #scan-overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 50, 0, 0.7);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-            text-align: center;
-        }
+        button:active { background: var(--crt-green); color: #000; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
+    <div class="crt-overlay"></div>
+    
+    <div id="ui-wrapper">
+        <div id="header">
+            ACHERON OS v2.0 // ESTADO: <span id="sys-status">BUSCANDO SEÑAL</span><br>
+            RONDA: <span id="round-num">1</span>/10 | JUGADOR: <span id="curr-p">A</span>
+        </div>
 
-<div id="header">
-    <div id="round-timer">T-MINUS: <span id="round-val">10</span> MINUTOS</div>
-    <div style="font-size: 0.6rem;">DISTANCIA SEGURIDAD: <span id="dist-val">0</span>/7</div>
-</div>
+        <div id="camera-container">
+            <video id="video" playsinline></video>
+            <canvas id="canvas"></canvas>
+            <div class="scan-frame" id="guide"></div>
+            
+            <div id="result-screen" class="hidden" style="position:absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,10,0,0.95); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:500;">
+                <h2 id="res-type" style="color:var(--cold-blue)">--</h2>
+                <div id="res-percent" style="font-size: 3rem;">0%</div>
+                <p id="res-msg" style="text-align:center; padding:20px;"></p>
+                <button onclick="closeResult()" style="width:150px">VOLVER</button>
+            </div>
+        </div>
 
-<div id="main-display">
-    <div id="scanner-view">
-        <video id="video" autoplay playsinline></video>
-        <div id="scan-overlay">
-            <h2 id="scan-title">ESCANEANDO...</h2>
-            <div id="scan-result" style="font-size: 2rem;">--%</div>
-            <p id="scan-msg">PROCESANDO ADN...</p>
-            <button onclick="closeScan()">CERRAR</button>
+        <div id="terminal-output">
+            > SISTEMA INICIADO...<br>
+            > ESPERANDO ESCANEO DE CONSOLA (3 CARTAS)...
+        </div>
+
+        <div class="btn-group">
+            <button onclick="setScanMode('NEURONAL')">SCAN NEURONAL</button>
+            <button onclick="setScanMode('EM')">SCAN ELECTROMAG.</button>
+            <button onclick="setScanMode('MUTAGENO')">SCAN MUTÁGENO</button>
+            <button onclick="nextTurn()" style="grid-column: span 3; border-color: var(--danger-red); color: var(--danger-red);">FINALIZAR TURNO</button>
         </div>
     </div>
-    <div class="status-box">
-        SISTEMA: ONLINE<br>
-        SENSORES: ACTIVOS
-    </div>
-</div>
-
-<div id="controls">
-    <button onclick="startScan('NEURONAL')">SCAN NEURONAL</button>
-    <button onclick="startScan('EM')">SCAN ELECTROMAG.</button>
-    <button onclick="startScan('MUTAGENO')">SCAN MUTÁGENO</button>
-    <button onclick="nextTurn()" style="background: #1a0a0a; border-color: #f00; color: #f00;">FIN TURNO</button>
-</div>
 
 <script>
-    // ESTADO DEL JUEGO
-    let gameState = {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const terminal = document.getElementById('terminal-output');
+    
+    let scanMode = 'ID'; // Modos: ID, NEURONAL, EM, MUTAGENO, CONSOLE
+    let consoleCards = [];
+    let isProcessing = false;
+
+    // Estado persistente
+    let game = JSON.parse(localStorage.getItem('exodus_save')) || {
         round: 1,
-        currentPlayer: 'A',
-        playerRoles: { A: null, B: null }, // Humano, Cyborg, Adaptoid
-        scanHistory: { A: {}, B: {} }, // Guardará intentos por tipo
-        password: []
+        pA: { role: null, scans: {} },
+        pB: { role: null, scans: {} },
+        turn: 'A',
+        pass: []
     };
 
-    const video = document.getElementById('video');
-    const overlay = document.getElementById('scan-overlay');
-    const resultVal = document.getElementById('scan-result');
-    const scanTitle = document.getElementById('scan-title');
-    const scanMsg = document.getElementById('scan-msg');
+    function log(msg) {
+        terminal.innerHTML += `> ${msg}<br>`;
+        terminal.scrollTop = terminal.scrollHeight;
+    }
 
-    // Inicializar Cámara
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
+    // Iniciar Cámara
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+    .then(stream => {
         video.srcObject = stream;
+        video.setAttribute("playsinline", true);
+        video.play();
+        requestAnimationFrame(tick);
     });
 
-    function startScan(type) {
-        scanTitle.innerText = "ESCANEANDO " + type;
-        overlay.style.display = "flex";
-        
-        // Simulación de lectura QR (En la versión final aquí se activaría jsQR)
-        setTimeout(() => {
-            processScanLogic(type);
-        }, 2000);
+    function tick() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA && !isProcessing) {
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var code = jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: "dontInvert" });
+            
+            if (code && code.data.startsWith("ACHERON_")) {
+                handleQR(code.data);
+            }
+        }
+        requestAnimationFrame(tick);
     }
 
-    function processScanLogic(type) {
-        // Lógica de porcentajes según tu diseño
-        let player = gameState.currentPlayer;
-        let roleReal = "HUMANO"; // Esto debería ser asignado al inicio
+    function handleQR(data) {
+        isProcessing = true;
+        log(`DETECTADO: ${data}`);
         
-        if (!gameState.scanHistory[player][type]) {
-            gameState.scanHistory[player][type] = 1;
-            // Primer escaneo: 50-75% o 0-3%
-            let isClose = (type === "NEURONAL" && roleReal === "HUMANO"); // Ejemplo
-            let percent = isClose ? Math.floor(Math.random() * (75 - 50) + 50) : Math.floor(Math.random() * 3);
-            resultVal.innerText = percent + "%";
-            scanMsg.innerText = "RESULTADO INCONCLUSO. SE REQUIERE SEGUNDO ANÁLISIS.";
+        if (data.includes("CONS_")) {
+            handleConsole(data);
+        } else if (data.includes("CHAR_")) {
+            handleCharacter(data);
+        }
+        
+        setTimeout(() => { isProcessing = false; }, 2000);
+    }
+
+    function handleCharacter(data) {
+        let p = game.turn === 'A' ? game.pA : game.pB;
+        if (!p.role) {
+            const roles = ['HUMANO', 'CYBORG', 'ADAPTOID'];
+            p.role = roles[Math.floor(Math.random() * roles.length)];
+            save();
+            log("SUJETO REGISTRADO EN BASE DE DATOS.");
+        }
+        
+        if (scanMode !== 'ID') {
+            executeScan(p, scanMode);
         } else {
-            // Segundo escaneo: 90-100% o 10-30%
-            let isMatch = (type === "NEURONAL" && roleReal === "HUMANO");
-            let percent = isMatch ? Math.floor(Math.random() * (100 - 90) + 90) : Math.floor(Math.random() * (30 - 10) + 10);
-            resultVal.innerText = percent + "%";
-            scanMsg.innerText = percent > 90 ? "NURALEZA CONFIRMADA." : "AMENAZA DESCARTADA.";
+            log("MOSTRANDO ANIMACIÓN DE CARACTER...");
+            // Aquí dispararías el placeholder de video de 5s
         }
     }
+
+    function executeScan(player, type) {
+        document.getElementById('result-screen').classList.remove('hidden');
+        document.getElementById('res-type').innerText = "ANÁLISIS " + type;
+        
+        let count = player.scans[type] || 0;
+        let isTrueType = (type === 'NEURONAL' && player.role === 'HUMANO') || 
+                         (type === 'EM' && player.role === 'CYBORG') || 
+                         (type === 'MUTAGENO' && player.role === 'ADAPTOID');
+        
+        let percent = 0;
+        if (count === 0) {
+            percent = isTrueType ? Math.floor(Math.random() * 25) + 50 : Math.floor(Math.random() * 5);
+            document.getElementById('res-msg').innerText = "RESULTADO AMBIGUO. SE REQUIERE RE-ESCANEADO.";
+        } else {
+            percent = isTrueType ? Math.floor(Math.random() * 10) + 90 : Math.floor(Math.random() * 20) + 10;
+            document.getElementById('res-msg').innerText = percent > 80 ? "NATURALEZA CONFIRMADA." : "TIPO BIOLÓGICO DESCARTADO.";
+        }
+        
+        document.getElementById('res-percent').innerText = percent + "%";
+        player.scans[type] = count + 1;
+        save();
+    }
+
+    function handleConsole(data) {
+        let val = data.split('_')[2];
+        if (!consoleCards.includes(val) && consoleCards.length < 3) {
+            consoleCards.push(val);
+            log(`CONSOLA: ${val} SINCRONIZADA (${consoleCards.length}/3)`);
+            if (consoleCards.length === 3) {
+                log("CONTRASEÑA GENERADA. ACCESO A MOTORES DISPONIBLE.");
+                game.pass = consoleCards;
+                save();
+            }
+        }
+    }
+
+    function setScanMode(m) { scanMode = m; log(`MODO: ${m}`); }
+    function closeResult() { document.getElementById('result-screen').classList.add('hidden'); scanMode = 'ID'; }
+    function save() { localStorage.setItem('exodus_save', JSON.stringify(game)); }
 
     function nextTurn() {
-        if (gameState.currentPlayer === 'A') {
-            gameState.currentPlayer = 'B';
-            alert("PASAR DISPOSITIVO AL JUGADOR B");
-        } else {
-            gameState.currentPlayer = 'A';
-            gameState.round++;
-            document.getElementById('round-val').innerText = (11 - gameState.round);
-            alert("RONDA FINALIZADA. COMIENZA RONDA " + gameState.round);
+        game.turn = game.turn === 'A' ? 'B' : 'A';
+        if (game.turn === 'A') { 
+            game.round++; 
+            log(`SISTEMA: RONDA ${game.round} INICIADA.`);
         }
-    }
-
-    function closeScan() {
-        overlay.style.display = "none";
+        document.getElementById('round-num').innerText = game.round;
+        document.getElementById('curr-p').innerText = game.turn;
+        save();
+        alert("CAMBIO DE TURNO. ENTREGAR DISPOSITIVO.");
     }
 </script>
 </body>
