@@ -14,7 +14,7 @@
 
         #ui-wrapper { display: flex; flex-direction: column; height: 100vh; position: relative; }
         
-        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; text-align: center; background: rgba(0,20,0,0.9); }
+        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; text-align: center; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; }
 
         #camera-container { position: relative; flex-grow: 1; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.4; }
@@ -35,6 +35,8 @@
 
         #scan-line { position: absolute; width: 100%; height: 2px; background: var(--cold-blue); top: 0; display: none; box-shadow: 0 0 10px var(--cold-blue); z-index: 100; }
         @keyframes moveScan { from { top: 0; } to { top: 100%; } }
+
+        .reset-btn { background: transparent; border: 1px solid #444; color: #444; padding: 2px 5px; font-size: 8px; }
     </style>
 </head>
 <body>
@@ -51,9 +53,9 @@
 
     <div id="ui-wrapper">
         <div id="header">
-    <button onclick="hardReset()" style="float:left; padding:2px 5px; font-size:8px; border-color:white; color:white;">RESET</button>
-    ACHERON v5.0 // RONDA:<span id="round-num">1</span> // JUG:<span id="curr-p">A</span>
-</div>
+            <button class="reset-btn" onclick="hardReset()">RESET</button>
+            <span>ACHERON v5.0 // RONDA:<span id="round-num">1</span> // JUG:<span id="curr-p">A</span></span>
+            <div style="width:40px"></div> </div>
 
         <div id="camera-container">
             <div id="scan-line"></div>
@@ -119,101 +121,3 @@
         
         // Lógica de SETUP
         if (!setupDone) {
-            if (data.includes("CONS_") && !consoles.includes(data)) {
-                consoles.push(data);
-                document.getElementById('setup-progress').innerText = consoles.length + " / 3";
-                if (consoles.length === 3) {
-                    game.pass = consoles.map(c => c.split('_')[2]);
-                    document.getElementById('btn-start').style.display = 'block';
-                }
-            }
-            setTimeout(() => isProcessing = false, 1500);
-            return;
-        }
-
-        // Lógica de PERSONAJE
-        if (data.includes("CHAR_")) {
-            let p = game.turn === 'A' ? game.pA : game.pB;
-            p.char = data.replace("ACHERON_CHAR_", "");
-            document.getElementById('terminal-output').innerText = "> RECONOCIDO: " + p.char;
-            document.getElementById('btn-bio').style.display = 'block';
-            
-            if (!p.role) assignRole(p);
-            
-            if (scanMode !== 'ID') runAnalysis(p);
-            else setTimeout(() => isProcessing = false, 1500);
-        }
-    }
-
-    function assignRole(player) {
-        const other = game.turn === 'A' ? game.pB : game.pA;
-        let options = ['HUMANO', 'CYBORG', 'ADAPTOID'];
-        if (other.role === 'HUMANO') options = ['CYBORG', 'ADAPTOID'];
-        else if (other.role === 'ADAPTOID') options = ['HUMANO', 'CYBORG'];
-        player.role = options[Math.floor(Math.random() * options.length)];
-        save();
-    }
-
-    function runAnalysis(player) {
-        const line = document.getElementById('scan-line');
-        line.style.display = 'block';
-        line.style.animation = 'moveScan 2s linear infinite';
-        
-        setTimeout(() => {
-            line.style.display = 'none';
-            document.getElementById('res-modal').style.display = 'flex';
-            
-            let count = player.scans[scanMode] || 0;
-            let match = (scanMode === 'NEURONAL' && player.role === 'HUMANO') || 
-                        (scanMode === 'EM' && player.role === 'CYBORG') || 
-                        (scanMode === 'MUTAGENO' && player.role === 'ADAPTOID');
-            
-            let p = count === 0 ? (match ? r(50,75) : r(0,5)) : (match ? r(90,99) : r(5,15));
-            
-            document.getElementById('res-perc').innerText = p + "%";
-            document.getElementById('res-type').innerText = "RANGO " + scanMode;
-            document.getElementById('res-msg').innerText = p > 80 ? "FIRMA POSITIVA" : "DATOS INSUFICIENTES";
-            
-            player.scans[scanMode] = count + 1;
-            save();
-        }, 2000);
-    }
-
-    function playBioLog() {
-        let p = game.turn === 'A' ? game.pA : game.pB;
-        if (!p.char) return;
-        
-        const vid = document.getElementById('p-video');
-        // REGLA DE ORO: El archivo en GitHub debe llamarse igual que el QR (sin el prefijo)
-        // Ejemplo: QR=ACHERON_CHAR_AGENT_MAN_001 -> Video=AGENT_MAN_001.mp4
-        let name = p.char.trim(); 
-        vid.src = `media/videos/${encodeURIComponent(name)}.mp4`;
-        
-        document.getElementById('vid-modal').style.display = 'flex';
-        vid.play().catch(err => {
-            alert("ERROR DE CARGA: Asegúrate que el archivo se llama '" + name + ".mp4' en la carpeta media/videos/ y que no tiene espacios raros.");
-            console.error(err);
-        });
-    }
-
-    function stopVideo() { const v = document.getElementById('p-video'); v.pause(); closeModal('vid-modal'); }
-    function nextTurn() {
-        game.turn = game.turn === 'A' ? 'B' : 'A';
-        if (game.turn === 'A') game.round++;
-        document.getElementById('curr-p').innerText = game.turn;
-        document.getElementById('round-num').innerText = game.round;
-        document.getElementById('btn-bio').style.display = 'none';
-        save();
-        alert("CAMBIO DE DISPOSITIVO: TURNO JUGADOR " + game.turn);
-    }
-
-    function finishSetup() { setupDone = true; document.getElementById('setup-screen').style.display = 'none'; save(); }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; isProcessing = false; scanMode = 'ID'; }
-    function save() { localStorage.setItem('ex_v5', JSON.stringify(game)); }
-    function r(min, max) { return Math.floor(Math.random() * (max - min + 1) + min); }
-
-    // Auto-skip setup si ya se hizo
-    if (game.pass.length === 3) finishSetup();
-</script>
-</body>
-</html>
