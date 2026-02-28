@@ -1,194 +1,22 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ACHERON CORE - V4.0</title>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
-    <style>
-        :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
-        body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; }
-        .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 1000; }
-        #ui-wrapper { display: flex; flex-direction: column; height: 100vh; }
-        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; text-align: center; font-size: 11px; background: rgba(0,20,0,0.8); }
-        #camera-container { position: relative; flex-grow: 1; background: #000; border: 2px solid #1a1a1a; }
-        #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.5; }
-        #scan-bar { position: absolute; top: -5px; left: 0; width: 100%; height: 5px; background: var(--cold-blue); box-shadow: 0 0 15px var(--cold-blue); display: none; z-index: 200; }
-        @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
-        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 10, 0, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 500; }
-        #terminal-output { height: 80px; background: #000; border-top: 1px solid var(--crt-green); padding: 8px; font-size: 10px; overflow-y: auto; color: #7f8c8d; }
-        .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 10px; background: #0a0a0a; }
-        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 12px 2px; font-size: 9px; cursor: pointer; }
-        button:active { background: var(--crt-green); color: #000; }
-        .btn-danger { color: var(--danger-red); border-color: var(--danger-red); }
-        .btn-special { color: var(--cold-blue); border-color: var(--cold-blue); grid-column: span 3; margin-top: 5px; display: none; }
-        #setup-screen { display: flex; z-index: 2000; background: var(--bg); text-align: center; padding: 20px; }
-    </style>
-</head>
-<body>
-    <div class="crt-overlay"></div>
-
-    <div id="setup-screen" class="modal">
-        <h3>INICIALIZACIÓN DE CONSOLA</h3>
-        <p>Escanea las 3 cartas de consola descartadas para generar la contraseña de escape.</p>
-        <div id="setup-progress" style="font-size: 2rem; margin: 20px;">0 / 3</div>
-        <div id="setup-log" style="font-size: 10px; color: var(--cold-blue);">ESPERANDO QR...</div>
-        <button id="start-game-btn" onclick="finishSetup()" style="display:none; margin-top:20px; padding:20px;">INICIAR MISIÓN</button>
-    </div>
-
-    <div id="ui-wrapper">
-        <div id="header">
-            ACHERON OS // R:<span id="round-num">1</span> // JUGADOR:<span id="curr-p">A</span><br>
-            <small id="sys-status">SISTEMA ONLINE</small>
-        </div>
-
-        <div id="camera-container">
-            <video id="video" playsinline></video>
-            <canvas id="canvas" style="display:none"></canvas>
-            <div id="scan-bar"></div>
-            
-            <div id="result-modal" class="modal">
-                <h2 id="res-type">ANÁLISIS</h2>
-                <div id="res-percent" style="font-size: 3rem; color:white;">0%</div>
-                <p id="res-msg" style="text-align:center; padding: 20px; font-size: 12px;"></p>
-                <button onclick="closeModal('result-modal')" style="width: 120px;">VOLVER</button>
-            </div>
-
-            <div id="video-modal" class="modal">
-                <video id="p-video" controls style="width: 90%"></video>
-                <button onclick="closeModal('video-modal')" style="width: 120px; margin-top: 10px;">CERRAR</button>
-            </div>
-        </div>
-
-        <div id="terminal-output">> SISTEMA LISTO. ESCANEE CARTA DE PERSONAJE.</div>
-
-        <div class="btn-group">
-            <button onclick="setMode('NEURONAL')">SCAN NEURONAL</button>
-            <button onclick="setMode('EM')">SCAN ELECTROMAG.</button>
-            <button onclick="setMode('MUTAGENO')">SCAN MUTÁGENO</button>
-            <button id="btn-animate" class="btn-special" onclick="playCharacterVideo()">VER BIO-LOG (MP4)</button>
-            <button onclick="nextTurn()" class="btn-danger" style="grid-column: span 3;">FINALIZAR TURNO</button>
-        </div>
-    </div>
-
-<script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    let scanMode = 'ID';
-    let isScanning = false;
-    let setupComplete = false;
-    let consoleCodes = [];
-
-    let game = JSON.parse(localStorage.getItem('exodus_save')) || {
-        round: 1, pA: { role: null, scans: {}, char: null }, pB: { role: null, scans: {}, char: null }, turn: 'A', pass: []
-    };
-
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => {
-        video.srcObject = s; video.play(); requestAnimationFrame(tick);
-    });
-
-    function tick() {
-        if (video.readyState === video.HAVE_ENOUGH_DATA && !isScanning) {
-            canvas.height = video.videoHeight; canvas.width = video.videoWidth;
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-            if (code && code.data.startsWith("ACHERON_")) handleQR(code.data);
-        }
-        requestAnimationFrame(tick);
-    }
-
-    function handleQR(data) {
-        if (!setupComplete) {
-            if (data.includes("CONS_") && !consoleCodes.includes(data)) {
-                consoleCodes.push(data);
-                document.getElementById('setup-progress').innerText = `${consoleCodes.length} / 3`;
-                document.getElementById('setup-log').innerText = `CONSOLA ${data.split('_')[2]} REGISTRADA`;
-                if (consoleCodes.length === 3) {
-                    game.pass = consoleCodes.map(c => c.split('_')[2]);
-                    document.getElementById('start-game-btn').style.display = 'block';
-                }
-                isScanning = true; setTimeout(() => isScanning = false, 1500);
-            }
+function playCharacterVideo() {
+        let p = game.turn === 'A' ? game.pA : game.pB;
+        if (!p.char) {
+            alert("PRIMERO ESCANEA UNA CARTA DE PERSONAJE");
             return;
         }
-
-        if (data.includes("CHAR_")) {
-            isScanning = true;
-            let p = game.turn === 'A' ? game.pA : game.pB;
-            p.char = data; 
-            document.getElementById('btn-animate').style.display = 'block';
-            document.getElementById('terminal-output').innerHTML = `> SUJETO: ${data.replace('ACHERON_CHAR_', '')}`;
-            
-            if (!p.role) assignRole(p);
-            if (scanMode !== 'ID') runBioScan(p, scanMode);
-            else setTimeout(() => isScanning = false, 2000);
-        }
-    }
-
-    function assignRole(player) {
-        const otherP = game.turn === 'A' ? game.pB : game.pA;
-        let pool = ['HUMANO', 'CYBORG', 'ADAPTOID'];
-        
-        if (otherP.role === 'HUMANO') pool = ['CYBORG', 'ADAPTOID'];
-        else if (otherP.role === 'ADAPTOID') pool = ['HUMANO', 'CYBORG'];
-        
-        player.role = pool[Math.floor(Math.random() * pool.length)];
-        save();
-    }
-
-    function runBioScan(player, type) {
-        document.getElementById('scan-bar').style.display = 'block';
-        document.getElementById('scan-bar').style.animation = 'scanMove 2s infinite linear';
-        playScanSound();
-
-        setTimeout(() => {
-            document.getElementById('scan-bar').style.display = 'none';
-            document.getElementById('result-modal').style.display = 'flex';
-            let count = player.scans[type] || 0;
-            let isTrue = (type === 'NEURONAL' && player.role === 'HUMANO') || (type === 'EM' && player.role === 'CYBORG') || (type === 'MUTAGENO' && player.role === 'ADAPTOID');
-            let percent = count === 0 ? (isTrue ? r(50, 75) : r(0, 3)) : (isTrue ? r(90, 100) : r(10, 30));
-            document.getElementById('res-percent').innerText = percent + "%";
-            document.getElementById('res-msg').innerText = count === 0 ? "RESULTADO NO DEFINITIVO." : "CONFIRMACIÓN ALTA.";
-            player.scans[type] = count + 1;
-            save();
-        }, 2000);
-    }
-
-    function playCharacterVideo() {
-        let p = game.turn === 'A' ? game.pA : game.pB;
-        if (!p.char) return;
         const vPlayer = document.getElementById('p-video');
-        let fileName = p.char.replace('ACHERON_CHAR_', '').replace(/_/g, ' ');
-        vPlayer.src = `media/videos/${fileName}.mp4`; 
+        
+        // Esta línea limpia el nombre del QR para buscar el archivo
+        let fileName = p.char.replace('ACHERON_CHAR_', '');
+        
+        // Codificamos la URL para que los espacios no rompan el enlace
+        let videoUrl = `media/videos/${encodeURIComponent(fileName)}.mp4`;
+        
+        console.log("Intentando cargar vídeo de:", videoUrl);
+        vPlayer.src = videoUrl; 
         document.getElementById('video-modal').style.display = 'flex';
-        vPlayer.play();
+        vPlayer.play().catch(e => {
+            console.error("Error al reproducir vídeo:", e);
+            alert("ERROR: No se encuentra el archivo " + fileName + ".mp4 en la carpeta media/videos/");
+        });
     }
-
-    function finishSetup() { setupComplete = true; document.getElementById('setup-screen').style.display = 'none'; save(); }
-    function r(min, max) { return Math.floor(Math.random() * (max - min + 1) + min); }
-    function setMode(m) { scanMode = m; document.getElementById('terminal-output').innerText = `> MODO: ${m}`; }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; isScanning = false; scanMode = 'ID'; }
-    function save() { localStorage.setItem('exodus_save', JSON.stringify(game)); }
-    function playScanSound() {
-        const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 2);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime); osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 2);
-    }
-    function nextTurn() {
-        game.turn = game.turn === 'A' ? 'B' : 'A';
-        if (game.turn === 'A') game.round++;
-        document.getElementById('round-num').innerText = game.round;
-        document.getElementById('curr-p').innerText = game.turn;
-        document.getElementById('btn-animate').style.display = 'none';
-        save(); alert("CAMBIO DE TURNO");
-    }
-
-    if (game.pass.length === 3) { setupComplete = true; document.getElementById('setup-screen').style.display = 'none'; }
-</script>
-</body>
-</html>
