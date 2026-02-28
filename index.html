@@ -3,40 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ACHERON CORE - V5.0</title>
+    <title>ACHERON CORE - V6.0</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
         body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; font-size: 12px; }
-        
-        /* Capa CRT */
-        .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 1000; }
-
+        .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5000; }
         #ui-wrapper { display: flex; flex-direction: column; height: 100vh; position: relative; }
-        
-        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; text-align: center; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; }
-
+        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; text-align: center; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; z-index: 100; }
         #camera-container { position: relative; flex-grow: 1; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.4; }
-        
-        /* Modales */
-        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 10, 0, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 2000; padding: 20px; box-sizing: border-box; }
-        
-        #setup-screen { display: flex; } /* Activo al inicio */
-
-        #terminal-output { height: 60px; background: #000; border-top: 1px solid var(--crt-green); padding: 10px; font-size: 10px; color: #7f8c8d; overflow-y: auto; }
-
-        .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: #000; }
-        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 10px; cursor: pointer; }
-        button:active { background: var(--crt-green); color: #000; }
-        
+        #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 15, 0, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; }
+        #setup-screen { display: flex; } 
+        #terminal-output { height: 60px; background: #000; border-top: 1px solid var(--crt-green); padding: 10px; font-size: 10px; color: #7f8c8d; }
+        .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: #000; z-index: 100; }
+        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 10px; cursor: pointer; pointer-events: auto; }
         .btn-danger { border-color: var(--danger-red); color: var(--danger-red); }
         .btn-blue { border-color: var(--cold-blue); color: var(--cold-blue); display: none; grid-column: span 3; }
-
         #scan-line { position: absolute; width: 100%; height: 2px; background: var(--cold-blue); top: 0; display: none; box-shadow: 0 0 10px var(--cold-blue); z-index: 100; }
         @keyframes moveScan { from { top: 0; } to { top: 100%; } }
-
-        .reset-btn { background: transparent; border: 1px solid #444; color: #444; padding: 2px 5px; font-size: 8px; }
+        .reset-btn { background: transparent; border: 1px solid #444; color: #aaa; padding: 5px 10px; font-size: 10px; z-index: 4000; }
     </style>
 </head>
 <body>
@@ -45,17 +31,17 @@
     <div id="setup-screen" class="modal">
         <h2 style="color: var(--cold-blue)">INICIALIZACIÓN</h2>
         <p style="text-align:center">Escanea 3 QRs de Consola descartados</p>
-        <div id="setup-progress" style="font-size: 3rem; margin: 20px;">0 / 3</div>
-        <div id="setup-log" style="color: #666; font-size: 10px;">ESPERANDO SEÑAL...</div>
-        <button id="btn-start" onclick="finishSetup()" style="display:none; margin-top:20px; width: 200px; background: var(--crt-green); color: #000;">ACCEDER AL PUENTE</button>
-        <button onclick="finishSetup()" style="margin-top:40px; border:none; color:#444; font-size:8px;">[ SALTAR SETUP / MODO DEBUG ]</button>
+        <div id="setup-progress" style="font-size: 4rem; margin: 10px; color: white;">0 / 3</div>
+        <div id="setup-log" style="color: var(--crt-green); font-size: 10px; margin-bottom: 20px;">[ BUSCANDO QR EN CÁMARA... ]</div>
+        <button id="btn-start" onclick="finishSetup()" style="display:none; width: 220px; background: var(--crt-green); color: #000; font-weight: bold; margin-bottom: 10px;">ACCEDER AL PUENTE</button>
+        <button onclick="finishSetup()" style="border: 1px solid #555; color:#888; padding: 10px 20px; background: rgba(255,255,255,0.05);">SALTAR SETUP / MODO DEBUG</button>
     </div>
 
     <div id="ui-wrapper">
         <div id="header">
-            <button class="reset-btn" onclick="hardReset()">RESET</button>
-            <span>ACHERON v5.0 // RONDA:<span id="round-num">1</span> // JUG:<span id="curr-p">A</span></span>
-            <div style="width:40px"></div> </div>
+            <button class="reset-btn" onclick="hardReset()">RESETEAR NAVE</button>
+            <span>ACHERON v6.0 // JUG:<span id="curr-p">A</span></span>
+        </div>
 
         <div id="camera-container">
             <div id="scan-line"></div>
@@ -64,18 +50,18 @@
 
             <div id="res-modal" class="modal">
                 <h1 id="res-perc" style="font-size: 4rem; margin: 0;">0%</h1>
-                <h3 id="res-type">TIPO</h3>
-                <p id="res-msg" style="text-align:center"></p>
+                <h3 id="res-type">ANÁLISIS</h3>
+                <p id="res-msg"></p>
                 <button onclick="closeModal('res-modal')" style="width: 150px">CERRAR</button>
             </div>
 
             <div id="vid-modal" class="modal">
-                <video id="p-video" style="width: 100%; border: 1px solid var(--cold-blue);"></video>
+                <video id="p-video" style="width: 100%; max-height: 70%; border: 1px solid var(--cold-blue);"></video>
                 <button onclick="stopVideo()" style="margin-top: 20px; width: 150px">CERRAR BIO-LOG</button>
             </div>
         </div>
 
-        <div id="terminal-output">> SISTEMA ONLINE. ESPERANDO IDENTIFICACIÓN.</div>
+        <div id="terminal-output">> SISTEMA OPERATIVO. ESCANEE CARTA.</div>
 
         <div class="btn-group">
             <button onclick="setMode('NEURONAL')">SCAN NEURONAL</button>
@@ -90,10 +76,9 @@
     let setupDone = false;
     let scanMode = 'ID';
     let isProcessing = false;
-    let consoles = [];
+    let consolesFound = [];
     
-    // Estado del juego
-    let game = JSON.parse(localStorage.getItem('ex_v5')) || {
+    let game = JSON.parse(localStorage.getItem('ex_v6')) || {
         round: 1, turn: 'A', pA: { role: null, char: null, scans: {} }, pB: { role: null, char: null, scans: {} }, pass: []
     };
 
@@ -101,17 +86,19 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Iniciar cámara
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
         v.srcObject = stream; v.play(); requestAnimationFrame(tick);
-    });
+    }).catch(err => alert("Error cámara: " + err));
 
     function tick() {
         if (v.readyState === v.HAVE_ENOUGH_DATA && !isProcessing) {
             canvas.height = v.videoHeight; canvas.width = v.videoWidth;
             ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
             const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-            if (code && code.data.startsWith("ACHERON_")) handleQR(code.data);
+            if (code && code.data.startsWith("ACHERON_")) {
+                console.log("QR Detectado:", code.data);
+                handleQR(code.data);
+            }
         }
         requestAnimationFrame(tick);
     }
@@ -119,5 +106,84 @@
     function handleQR(data) {
         isProcessing = true;
         
-        // Lógica de SETUP
         if (!setupDone) {
+            if (data.includes("CONS_") && !consolesFound.includes(data)) {
+                consolesFound.push(data);
+                document.getElementById('setup-progress').innerText = consolesFound.length + " / 3";
+                document.getElementById('setup-log').innerText = "[ CONSOLA " + data.split('_')[2] + " REGISTRADA ]";
+                if (consolesFound.length === 3) {
+                    game.pass = consolesFound.map(c => c.split('_')[2]);
+                    document.getElementById('btn-start').style.display = 'block';
+                }
+            }
+            setTimeout(() => { isProcessing = false; }, 1500);
+            return;
+        }
+
+        if (data.includes("CHAR_")) {
+            let p = game.turn === 'A' ? game.pA : game.pB;
+            p.char = data.replace("ACHERON_CHAR_", "");
+            document.getElementById('terminal-output').innerText = "> RECONOCIDO: " + p.char;
+            document.getElementById('btn-bio').style.display = 'block';
+            if (!p.role) assignRole(p);
+            if (scanMode !== 'ID') runAnalysis(p);
+            else setTimeout(() => { isProcessing = false; }, 1500);
+        }
+    }
+
+    function assignRole(player) {
+        const other = game.turn === 'A' ? game.pB : game.pA;
+        let options = ['HUMANO', 'CYBORG', 'ADAPTOID'];
+        if (other.role === 'HUMANO') options = ['CYBORG', 'ADAPTOID'];
+        else if (other.role === 'ADAPTOID') options = ['HUMANO', 'CYBORG'];
+        player.role = options[Math.floor(Math.random() * options.length)];
+        save();
+    }
+
+    function runAnalysis(player) {
+        const line = document.getElementById('scan-line');
+        line.style.display = 'block';
+        line.style.animation = 'moveScan 2s linear infinite';
+        setTimeout(() => {
+            line.style.display = 'none';
+            document.getElementById('res-modal').style.display = 'flex';
+            let count = player.scans[scanMode] || 0;
+            let match = (scanMode === 'NEURONAL' && player.role === 'HUMANO') || 
+                        (scanMode === 'EM' && player.role === 'CYBORG') || 
+                        (scanMode === 'MUTAGENO' && player.role === 'ADAPTOID');
+            let prob = count === 0 ? (match ? r(50,75) : r(0,5)) : (match ? r(90,99) : r(5,15));
+            document.getElementById('res-perc').innerText = prob + "%";
+            document.getElementById('res-msg').innerText = prob > 80 ? "FIRMA POSITIVA" : "DATOS INSUFICIENTES";
+            player.scans[scanMode] = count + 1;
+            save();
+        }, 2000);
+    }
+
+    function playBioLog() {
+        let p = game.turn === 'A' ? game.pA : game.pB;
+        const vid = document.getElementById('p-video');
+        let name = p.char.trim(); 
+        vid.src = `media/videos/${encodeURIComponent(name)}.mp4`;
+        document.getElementById('vid-modal').style.display = 'flex';
+        vid.play().catch(err => alert("No se encuentra el archivo: " + name + ".mp4"));
+    }
+
+    function stopVideo() { document.getElementById('p-video').pause(); closeModal('vid-modal'); }
+    function nextTurn() {
+        game.turn = game.turn === 'A' ? 'B' : 'A';
+        document.getElementById('curr-p').innerText = game.turn;
+        document.getElementById('btn-bio').style.display = 'none';
+        save();
+        alert("TURNO DEL JUGADOR " + game.turn);
+    }
+    function setMode(m) { scanMode = m; document.getElementById('terminal-output').innerText = "> MODO: " + m + ". ESCANEE CARTA."; }
+    function finishSetup() { setupDone = true; document.getElementById('setup-screen').style.display = 'none'; save(); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; isProcessing = false; scanMode = 'ID'; }
+    function save() { localStorage.setItem('ex_v6', JSON.stringify(game)); }
+    function r(min, max) { return Math.floor(Math.random() * (max - min + 1) + min); }
+    function hardReset() { if(confirm("¿REINICIAR?")) { localStorage.removeItem('ex_v6'); location.reload(); } }
+
+    if (game.pass.length === 3) finishSetup();
+</script>
+</body>
+</html>
