@@ -161,11 +161,27 @@
 
     function playBioLog() {
         let p = game.turn === 'A' ? game.pA : game.pB;
+        if (!p.char) return;
+
         const vid = document.getElementById('p-video');
-        let name = p.char.trim(); 
-        vid.src = `media/videos/${encodeURIComponent(name)}.mp4`;
+        
+        // Limpiamos el nombre: quitamos espacios y ponemos guiones bajos
+        let name = p.char.trim().replace(/\s+/g, '_'); 
+        
+        // AÑADIMOS UN "BYPASS" (?v=...) para saltarnos el error de GitHub
+        let versionBypass = Math.random().toString(36).substring(7);
+        vid.src = `media/videos/${name}.mp4?v=${versionBypass}`;
+        
+        console.log("Pidiendo a la nave el archivo:", vid.src);
+        
         document.getElementById('vid-modal').style.display = 'flex';
-        vid.play().catch(err => alert("No se encuentra el archivo: " + name + ".mp4"));
+        
+        // Forzamos la carga y reproducción
+        vid.load(); 
+        vid.play().catch(err => {
+            alert("SISTEMA: Error de comunicación con el archivo '" + name + ".mp4'. GitHub aún está procesando el cambio de nombre. Espera 1 minuto y reintenta.");
+            console.error(err);
+        });
     }
 
     function stopVideo() { document.getElementById('p-video').pause(); closeModal('vid-modal'); }
