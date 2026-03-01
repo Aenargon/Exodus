@@ -3,82 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ACHERON CORE - V8.1</title>
+    <title>ACHERON CORE - V8.2</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
-        
-        body { 
-            background: var(--bg); 
-            color: var(--crt-green); 
-            font-family: 'Courier New', monospace; 
-            margin: 0; 
-            overflow: hidden; 
-            text-transform: uppercase; 
-            font-size: 12px; 
-        }
-
-        /* Efecto de monitor antiguo */
-        .crt-overlay { 
-            position: fixed; top:0; left:0; width:100%; height:100%; 
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); 
-            background-size: 100% 3px, 3px 100%; 
-            pointer-events: none; z-index: 5000; 
-        }
-
-        /* Imagen de fondo del personaje (Aparece al entrar) */
-        #bg-char { 
-            position: absolute; top:0; left:0; width:100%; height:100%; 
-            object-fit: cover; opacity: 0.15; z-index: -1; 
-            filter: grayscale(100%) contrast(150%); 
-        }
-
-        .modal { 
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0, 10, 0, 0.98); display: none; 
-            flex-direction: column; align-items: center; justify-content: center; 
-            z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center;
-        }
-
+        body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; font-size: 12px; }
+        .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5000; }
+        #bg-char { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.15; z-index: -1; filter: grayscale(100%) contrast(150%); }
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 10, 0, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
         #ui-wrapper { display: flex; flex-direction: column; height: 100vh; position: relative; }
-
-        #header { 
-            border-bottom: 1px solid var(--crt-green); padding: 10px; 
-            background: rgba(0,20,0,0.9); display: flex; 
-            justify-content: space-between; align-items: center; 
-        }
-
+        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; }
         #camera-container { position: relative; flex-grow: 1; overflow: hidden; background: #000; }
         #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.5; }
-
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: #000; }
-        
-        button { 
-            background: #0d1a0d; color: var(--crt-green); 
-            border: 1px solid var(--crt-green); padding: 12px 5px; 
-            font-family: inherit; font-size: 9px; cursor: pointer; 
-        }
-
+        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 12px 5px; font-family: inherit; font-size: 9px; cursor: pointer; }
         .btn-blue { border-color: var(--cold-blue); color: var(--cold-blue); }
-        .btn-danger { border-color: var(--danger-red); color: var(--danger-red); }
-
-        /* Teclado Mastermind */
         .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
         .num-btn { padding: 15px; border: 1px solid var(--cold-blue); font-size: 1.2rem; }
-
-        #scan-line { 
-            position: absolute; width: 100%; height: 3px; 
-            background: var(--crt-green); top: 0; display: none; 
-            box-shadow: 0 0 15px var(--crt-green); z-index: 100; 
-        }
+        #scan-line { position: absolute; width: 100%; height: 3px; background: var(--crt-green); top: 0; display: none; box-shadow: 0 0 15px var(--crt-green); z-index: 100; }
         @keyframes moveScan { from { top: 0; } to { top: 100%; } }
-
-        input { 
-            background: black; color: var(--crt-green); 
-            border: 1px solid var(--crt-green); padding: 10px; 
-            text-align: center; font-family: inherit;
-        }
+        input { background: black; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 10px; text-align: center; font-family: inherit; }
     </style>
 </head>
 <body>
@@ -88,32 +32,32 @@
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: var(--crt-green); letter-spacing: 5px;">ACHERON CORE</h1>
-    <p>SISTEMA OPERATIVO DE EMERGENCIA</p>
+    <p>VERSION 8.2 ONLINE</p>
     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 50px;">
-        <button onclick="startNewGame()" style="padding: 20px 40px; font-size: 1.2rem;">INICIAR NUEVA MISIÓN</button>
+        <button onclick="startNewGame()" style="padding: 20px 40px; font-size: 1.2rem; border-color: #00ffff; color: #00ffff;">INICIAR NUEVA MISIÓN</button>
         <button onclick="resumeGame()" id="btn-resume" style="display:none; border-color: var(--cold-blue); color: var(--cold-blue); padding: 10px;">REANUDAR CONEXIÓN</button>
     </div>
 </div>
 
 <div id="setup-screen" class="modal">
     <h2 style="color: var(--cold-blue)">CONFIGURACIÓN DE PUENTE</h2>
-    <p>Escanea 3 Consolas para generar clave</p>
+    <p>Escanea 3 Consolas (QR cons_X)</p>
     <div id="setup-progress" style="font-size: 4rem; color: white; margin: 20px;">0/3</div>
     <button id="btn-start-game" onclick="showLogin()" style="display:none; background: var(--crt-green); color:black; padding: 15px 30px;">ACCEDER AL NÚCLEO</button>
 </div>
 
 <div id="login-screen" class="modal">
-    <h2 id="login-title">IDENTIFÍQUESE</h2>
+    <h2>IDENTIFÍQUESE</h2>
     <div id="player-selector">
         <button onclick="selectPlayer('A')" style="width: 200px; margin-bottom: 10px;">JUGADOR A</button><br>
         <button onclick="selectPlayer('B')" style="width: 200px;">JUGADOR B</button>
     </div>
     <div id="name-input-zone" style="display:none;">
-        <input type="text" id="player-name-field" placeholder="NOMBRE DEL SUJETO">
+        <input type="text" id="player-name-field" placeholder="TU NOMBRE">
         <button onclick="saveName()" style="margin-top: 10px; width: 100%;">REGISTRAR</button>
     </div>
     <div id="verify-zone" style="display:none;">
-        <p style="color: var(--cold-blue);">ESCANEE CARTA DE PERSONAJE<br>PARA VALIDAR RETINA</p>
+        <p style="color: var(--cold-blue);">ESCANEE SU CARTA DE PERSONAJE</p>
     </div>
 </div>
 
@@ -134,7 +78,7 @@
         <button class="num-btn" onclick="pressNum('0')">0</button>
         <button class="num-btn" onclick="checkMastermind()" style="color: var(--crt-green);">OK</button>
     </div>
-    <div id="mm-log" style="margin-top: 15px; font-size: 10px; color: #7f8c8d; height: 60px; overflow-y: auto; border-top: 1px solid #333; width: 100%; padding-top: 5px;"></div>
+    <div id="mm-log" style="margin-top: 15px; font-size: 10px; color: #7f8c8d; height: 60px; overflow-y: auto; width: 100%;"></div>
     <button onclick="closeModal('mastermind-screen')" style="margin-top: 10px;">VOLVER</button>
 </div>
 
@@ -144,32 +88,27 @@
         <span id="header-info">SISTEMA OFFLINE</span>
         <button class="btn-blue" onclick="openMastermind()" style="font-size: 8px;">BYPASS</button>
     </div>
-
     <div id="camera-container">
         <div id="scan-line"></div>
         <video id="video" playsinline></video>
         <canvas id="canvas" style="display:none"></canvas>
-
         <div id="res-modal" class="modal">
             <h1 id="res-perc" style="font-size: 4rem; margin: 0;">0%</h1>
             <h3 id="res-type">ANÁLISIS</h3>
             <p id="res-msg"></p>
             <button onclick="closeModal('res-modal')" style="width: 150px">CERRAR</button>
         </div>
-
         <div id="vid-modal" class="modal">
             <video id="p-video" style="width: 100%; max-height: 70%; border: 1px solid var(--cold-blue);"></video>
             <button onclick="stopVideo()" style="margin-top: 20px; width: 150px">SALIR</button>
         </div>
     </div>
-
-    <div id="terminal-output" style="height: 40px; background: #000; padding: 10px; font-size: 10px; border-top: 1px solid var(--crt-green);">> ESPERANDO ACCESO...</div>
-
+    <div id="terminal-output" style="height: 40px; background: #000; padding: 10px; font-size: 10px; border-top: 1px solid var(--crt-green);">> ESPERANDO...</div>
     <div class="btn-group">
         <button onclick="setMode('NEURONAL')">SCAN NEURONAL</button>
         <button onclick="setMode('EM')">SCAN ELECTROMAG.</button>
         <button onclick="setMode('MUTAGENO')">SCAN MUTÁGENO</button>
-        <button id="btn-bio" class="btn-blue" onclick="playBioLog()" style="grid-column: span 3; display: none;">VER BIO-LOG (MP4)</button>
+        <button id="btn-bio" class="btn-blue" onclick="playBioLog()" style="grid-column: span 3; display: none;">VER BIO-LOG</button>
     </div>
 </div>
 
@@ -181,8 +120,7 @@
     let currentPlayer = null;
     let currentGuess = "";
     
-    // Cargar datos
-    let game = JSON.parse(localStorage.getItem('acheron_v8')) || {
+    let game = JSON.parse(localStorage.getItem('acheron_v8.2')) || {
         pass: [],
         pA: { name: "JUGADOR A", char: null, role: null, scans: {} },
         pB: { name: "JUGADOR B", char: null, role: null, scans: {} }
@@ -193,7 +131,6 @@
     const ctx = canvas.getContext('2d');
     const scanSound = new Audio('media/audio/scan.mp3');
 
-    // Iniciar Cámara
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
         v.srcObject = stream; v.play(); requestAnimationFrame(tick);
     });
@@ -216,14 +153,12 @@
 
     function handleQR(data) {
         isProcessing = true;
-        
-        // SETUP: ESCANEAR 3 CONSOLAS
         if (!setupDone && game.pass.length < 3) {
             if (data.includes("cons_") && !consolesFound.includes(data)) {
                 consolesFound.push(data);
                 document.getElementById('setup-progress').innerText = consolesFound.length + "/3";
                 if (consolesFound.length === 3) {
-                    game.pass = consolesFound.map(c => c.split('_').pop()); // Guardamos solo el último dígito
+                    game.pass = consolesFound.map(c => c.split('_').pop());
                     document.getElementById('btn-start-game').style.display = 'block';
                     save();
                 }
@@ -231,6 +166,122 @@
             setTimeout(() => isProcessing = false, 1500);
             return;
         }
+        if (currentPlayer && !game[currentPlayer].char) {
+            if (data.includes("char_")) {
+                game[currentPlayer].char = data.replace("acheron_char_", "");
+                assignRole(game[currentPlayer]);
+                save();
+                enterShip();
+            }
+            setTimeout(() => isProcessing = false, 1500);
+            return;
+        }
+        if (data.includes("char_")) {
+            let charScanned = data.replace("acheron_char_", "");
+            if (charScanned === game[currentPlayer].char) {
+                if (scanMode !== 'ID') runAnalysis(game[currentPlayer]);
+                else { document.getElementById('btn-bio').style.display = 'block'; isProcessing = false; }
+            } else {
+                alert("ERROR: RETINA NO COINCIDE.");
+                isProcessing = false;
+            }
+        }
+    }
 
-        // LOGIN: IDENTIFICAR PERSONAJE
-        if (currentPlayer && !game
+    function startNewGame() {
+        if(confirm("¿INICIAR NUEVA MISIÓN?")) {
+            localStorage.clear();
+            game = { pass: [], pA: { name: "JUGADOR A", char: null, role: null, scans: {} }, pB: { name: "JUGADOR B", char: null, role: null, scans: {} } };
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('setup-screen').style.display = 'flex';
+            setupDone = false;
+        }
+    }
+
+    function resumeGame() {
+        setupDone = true;
+        document.getElementById('start-screen').style.display = 'none';
+        showLogin();
+    }
+
+    function showLogin() {
+        document.getElementById('setup-screen').style.display = 'none';
+        document.getElementById('login-screen').style.display = 'flex';
+        document.getElementById('player-selector').style.display = 'block';
+        document.getElementById('verify-zone').style.display = 'none';
+        document.getElementById('name-input-zone').style.display = 'none';
+    }
+
+    function selectPlayer(p) {
+        currentPlayer = p === 'A' ? 'pA' : 'pB';
+        if (game[currentPlayer].name.startsWith("JUGADOR")) {
+            document.getElementById('player-selector').style.display = 'none';
+            document.getElementById('name-input-zone').style.display = 'block';
+        } else if (!game[currentPlayer].char) {
+            document.getElementById('player-selector').style.display = 'none';
+            document.getElementById('verify-zone').style.display = 'block';
+            isProcessing = false; 
+        } else {
+            enterShip();
+        }
+    }
+
+    function saveName() {
+        let n = document.getElementById('player-name-field').value;
+        if (n) { game[currentPlayer].name = n.toUpperCase(); save(); selectPlayer(currentPlayer === 'pA' ? 'A' : 'B'); }
+    }
+
+    function enterShip() {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('header-info').innerText = game[currentPlayer].name;
+        document.getElementById('bg-char').src = `media/images/${game[currentPlayer].char}.jpg`;
+        document.getElementById('terminal-output').innerText = "> BIENVENIDO, " + game[currentPlayer].name;
+        isProcessing = false;
+    }
+
+    function openMastermind() { document.getElementById('mastermind-screen').style.display = 'flex'; }
+    function pressNum(n) { if(currentGuess.length < 3) { currentGuess += n; document.getElementById('mm-display').innerText = currentGuess; } }
+    function clearNum() { currentGuess = ""; document.getElementById('mm-display').innerText = "---"; }
+    function checkMastermind() {
+        if(currentGuess.length < 3) return;
+        let secret = game.pass, guessArr = currentGuess.split(""), posMatch = 0, numMatch = 0;
+        let sCopy = [...secret], gCopy = [...guessArr];
+        for(let i=0; i<3; i++) { if(gCopy[i] === sCopy[i]) { posMatch++; sCopy[i] = null; gCopy[i] = "X"; } }
+        for(let i=0; i<3; i++) { if(gCopy[i] !== "X" && sCopy.includes(gCopy[i])) { numMatch++; sCopy[sCopy.indexOf(gCopy[i])] = null; } }
+        let res = `INTENTO ${currentGuess}: [${posMatch} BLOQUEOS] [${numMatch} FIRMAS]`;
+        if (posMatch === 3) res = "!!! ACCESO TOTAL CONCEDIDO !!!";
+        document.getElementById('mm-log').innerHTML = res + "<br>" + document.getElementById('mm-log').innerHTML;
+        clearNum();
+    }
+
+    function runAnalysis(player) {
+        scanSound.play().catch(()=>{});
+        const line = document.getElementById('scan-line');
+        line.style.display = 'block';
+        line.style.animation = 'moveScan 2s linear 1';
+        setTimeout(() => {
+            line.style.display = 'none';
+            document.getElementById('res-modal').style.display = 'flex';
+            let match = (scanMode === 'NEURONAL' && player.role === 'HUMANO') || (scanMode === 'EM' && player.role === 'CYBORG') || (scanMode === 'MUTAGENO' && player.role === 'ADAPTOID');
+            let p = (player.scans[scanMode] || 0) === 0 ? (match ? r(50,75) : r(0,5)) : (match ? r(90,99) : r(5,15));
+            document.getElementById('res-perc').innerText = p + "%";
+            document.getElementById('res-msg').innerText = p > 80 ? "FIRMA POSITIVA" : "DATOS INSUFICIENTES";
+            player.scans[scanMode] = (player.scans[scanMode] || 0) + 1;
+            save();
+        }, 2000);
+    }
+    function playBioLog() {
+        const vid = document.getElementById('p-video');
+        vid.src = `media/videos/${game[currentPlayer].char}.mp4`;
+        document.getElementById('vid-modal').style.display = 'flex';
+        vid.load(); vid.play();
+    }
+    function stopVideo() { document.getElementById('p-video').pause(); closeModal('vid-modal'); }
+    function setMode(m) { scanMode = m; document.getElementById('terminal-output').innerText = "> MODO: " + m; }
+    function save() { localStorage.setItem('acheron_v8.2', JSON.stringify(game)); }
+    function r(min, max) { return Math.floor(Math.random() * (max - min + 1) + min); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; isProcessing = false; scanMode = 'ID'; }
+    function assignRole(player) { player.role = ['HUMANO', 'CYBORG', 'ADAPTOID'][r(0,2)]; }
+</script>
+</body>
+</html>
