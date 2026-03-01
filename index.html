@@ -3,26 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ACHERON CORE - V8.2</title>
+    <title>METASCANNER - ACHERON V8.3</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
-        body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; font-size: 12px; }
+        body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; }
         .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5000; }
-        #bg-char { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.15; z-index: -1; filter: grayscale(100%) contrast(150%); }
+        #bg-char { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.2; z-index: -1; filter: grayscale(100%); }
+        
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 10, 0, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
-        #ui-wrapper { display: flex; flex-direction: column; height: 100vh; position: relative; }
+        
+        #ui-wrapper { display: none; flex-direction: column; height: 100vh; position: relative; }
         #header { border-bottom: 1px solid var(--crt-green); padding: 10px; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; }
-        #camera-container { position: relative; flex-grow: 1; overflow: hidden; background: #000; }
-        #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.5; }
+        
+        #camera-container { position: relative; flex-grow: 1; overflow: hidden; background: #000; border: 2px solid #222; }
+        #video { width: 100%; height: 100%; object-fit: cover; opacity: 1; } /* Cámara ahora al 100% de brillo */
+
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: #000; }
-        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 12px 5px; font-family: inherit; font-size: 9px; cursor: pointer; }
+        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 10px; cursor: pointer; }
         .btn-blue { border-color: var(--cold-blue); color: var(--cold-blue); }
-        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 20px; }
-        .num-btn { padding: 15px; border: 1px solid var(--cold-blue); font-size: 1.2rem; }
-        #scan-line { position: absolute; width: 100%; height: 3px; background: var(--crt-green); top: 0; display: none; box-shadow: 0 0 15px var(--crt-green); z-index: 100; }
+        
+        #scan-line { position: absolute; width: 100%; height: 4px; background: var(--crt-green); top: 0; display: none; box-shadow: 0 0 15px var(--crt-green); z-index: 100; }
         @keyframes moveScan { from { top: 0; } to { top: 100%; } }
-        input { background: black; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 10px; text-align: center; font-family: inherit; }
+        input { background: black; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px; text-align: center; font-size: 1.2rem; width: 80%; }
     </style>
 </head>
 <body>
@@ -31,257 +34,236 @@
 <img id="bg-char" src="" alt="">
 
 <div id="start-screen" class="modal" style="display: flex;">
-    <h1 style="color: var(--crt-green); letter-spacing: 5px;">ACHERON CORE</h1>
-    <p>VERSION 8.2 ONLINE</p>
-    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 50px;">
-        <button onclick="startNewGame()" style="padding: 20px 40px; font-size: 1.2rem; border-color: #00ffff; color: #00ffff;">INICIAR NUEVA MISIÓN</button>
-        <button onclick="resumeGame()" id="btn-resume" style="display:none; border-color: var(--cold-blue); color: var(--cold-blue); padding: 10px;">REANUDAR CONEXIÓN</button>
-    </div>
+    <h1 style="color: #00ffff; letter-spacing: 5px;">ACHERON CORE</h1>
+    <p>METASCANNER V8.3 READY</p>
+    <button onclick="startNewGame()" style="padding: 20px 40px; font-size: 1.2rem; border-color: #00ffff; color: #00ffff; margin-top: 30px;">INICIAR NUEVA MISIÓN</button>
+    <button id="btn-resume" onclick="goToHub()" style="display:none; margin-top: 10px; padding: 10px;">REANUDAR MISIÓN</button>
 </div>
 
 <div id="setup-screen" class="modal">
-    <h2 style="color: var(--cold-blue)">CONFIGURACIÓN DE PUENTE</h2>
-    <p>Escanea 3 Consolas (QR cons_X)</p>
-    <div id="setup-progress" style="font-size: 4rem; color: white; margin: 20px;">0/3</div>
-    <button id="btn-start-game" onclick="showLogin()" style="display:none; background: var(--crt-green); color:black; padding: 15px 30px;">ACCEDER AL NÚCLEO</button>
+    <h2 style="color: var(--cold-blue)">INICIALIZANDO PUENTE</h2>
+    <p>Escanea los 3 códigos de Consola</p>
+    <div id="setup-progress" style="font-size: 5rem; color: white; margin: 20px;">0/3</div>
+    <div id="setup-instruction" style="color: #666;">Esperando QR cons_...</div>
 </div>
 
-<div id="login-screen" class="modal">
-    <h2>IDENTIFÍQUESE</h2>
-    <div id="player-selector">
-        <button onclick="selectPlayer('A')" style="width: 200px; margin-bottom: 10px;">JUGADOR A</button><br>
-        <button onclick="selectPlayer('B')" style="width: 200px;">JUGADOR B</button>
+<div id="reg-screen" class="modal">
+    <h2 id="reg-title" style="color: var(--crt-green);">REGISTRO JUGADOR A</h2>
+    <div id="reg-step-1">
+        <p>Introduce tu nombre de Operador:</p>
+        <input type="text" id="reg-name" placeholder="...">
+        <button onclick="saveRegName()" style="margin-top: 20px; width: 100%;">SIGUIENTE</button>
     </div>
-    <div id="name-input-zone" style="display:none;">
-        <input type="text" id="player-name-field" placeholder="TU NOMBRE">
-        <button onclick="saveName()" style="margin-top: 10px; width: 100%;">REGISTRAR</button>
-    </div>
-    <div id="verify-zone" style="display:none;">
-        <p style="color: var(--cold-blue);">ESCANEE SU CARTA DE PERSONAJE</p>
+    <div id="reg-step-2" style="display:none;">
+        <p style="color: var(--cold-blue);">ESCANEA TU CARTA DE PERSONAJE</p>
+        <p style="font-size: 0.8rem;">Para vincular datos biométricos</p>
     </div>
 </div>
 
-<div id="mastermind-screen" class="modal">
-    <h2 style="color: var(--cold-blue)">BYPASS DE SEGURIDAD</h2>
-    <div id="mm-display" style="font-size: 2rem; border: 1px dashed var(--cold-blue); padding: 10px; width: 150px;">---</div>
-    <div class="numpad">
-        <button class="num-btn" onclick="pressNum('1')">1</button>
-        <button class="num-btn" onclick="pressNum('2')">2</button>
-        <button class="num-btn" onclick="pressNum('3')">3</button>
-        <button class="num-btn" onclick="pressNum('4')">4</button>
-        <button class="num-btn" onclick="pressNum('5')">5</button>
-        <button class="num-btn" onclick="pressNum('6')">6</button>
-        <button class="num-btn" onclick="pressNum('7')">7</button>
-        <button class="num-btn" onclick="pressNum('8')">8</button>
-        <button class="num-btn" onclick="pressNum('9')">9</button>
-        <button class="num-btn" onclick="clearNum()" style="color: var(--danger-red);">X</button>
-        <button class="num-btn" onclick="pressNum('0')">0</button>
-        <button class="num-btn" onclick="checkMastermind()" style="color: var(--crt-green);">OK</button>
-    </div>
-    <div id="mm-log" style="margin-top: 15px; font-size: 10px; color: #7f8c8d; height: 60px; overflow-y: auto; width: 100%;"></div>
-    <button onclick="closeModal('mastermind-screen')" style="margin-top: 10px;">VOLVER</button>
+<div id="hub-screen" class="modal">
+    <h2 style="color: #00ffff;">PANEL DE CONTROL</h2>
+    <p>Selecciona Operador activo:</p>
+    <button id="btn-hub-pA" onclick="loginPlayer('pA')" style="width: 250px; padding: 20px; margin-bottom: 10px;">---</button>
+    <button id="btn-hub-pB" onclick="loginPlayer('pB')" style="width: 250px; padding: 20px;">---</button>
 </div>
 
 <div id="ui-wrapper">
     <div id="header">
-        <button onclick="showLogin()" style="font-size: 8px;">LOGOUT</button>
-        <span id="header-info">SISTEMA OFFLINE</span>
-        <button class="btn-blue" onclick="openMastermind()" style="font-size: 8px;">BYPASS</button>
+        <button onclick="logout()" class="btn-blue">LOGOUT</button>
+        <span id="player-display">---</span>
+        <button onclick="openBypass()" class="btn-blue">BYPASS</button>
     </div>
     <div id="camera-container">
         <div id="scan-line"></div>
         <video id="video" playsinline></video>
         <canvas id="canvas" style="display:none"></canvas>
+        
         <div id="res-modal" class="modal">
             <h1 id="res-perc" style="font-size: 4rem; margin: 0;">0%</h1>
-            <h3 id="res-type">ANÁLISIS</h3>
-            <p id="res-msg"></p>
+            <h3 id="res-msg">ANALIZANDO...</h3>
+            <p>Escaneo finalizado por este turno.</p>
             <button onclick="closeModal('res-modal')" style="width: 150px">CERRAR</button>
         </div>
-        <div id="vid-modal" class="modal">
-            <video id="p-video" style="width: 100%; max-height: 70%; border: 1px solid var(--cold-blue);"></video>
-            <button onclick="stopVideo()" style="margin-top: 20px; width: 150px">SALIR</button>
-        </div>
     </div>
-    <div id="terminal-output" style="height: 40px; background: #000; padding: 10px; font-size: 10px; border-top: 1px solid var(--crt-green);">> ESPERANDO...</div>
+    <div id="terminal" style="padding: 10px; font-size: 10px; background: #000; border-top: 1px solid var(--crt-green); height: 30px;">
+        > LISTO PARA ESCANEO
+    </div>
     <div class="btn-group">
-        <button onclick="setMode('NEURONAL')">SCAN NEURONAL</button>
-        <button onclick="setMode('EM')">SCAN ELECTROMAG.</button>
-        <button onclick="setMode('MUTAGENO')">SCAN MUTÁGENO</button>
-        <button id="btn-bio" class="btn-blue" onclick="playBioLog()" style="grid-column: span 3; display: none;">VER BIO-LOG</button>
+        <button onclick="runScan('NEURONAL')">SCAN NEURONAL</button>
+        <button onclick="runScan('EM')">SCAN ELECTROMAG.</button>
+        <button onclick="runScan('MUTAGENO')">SCAN MUTÁGENO</button>
+        <button id="btn-bio" onclick="playVideo()" style="grid-column: span 3; display:none; background: var(--cold-blue); color: #000;">REPRODUCIR BIO-LOG ANIMADO</button>
     </div>
 </div>
 
+<div id="bypass-screen" class="modal">
+    <h3>SISTEMA DE BLOQUEO</h3>
+    <div id="mm-display" style="font-size: 2rem; border: 1px solid var(--cold-blue); padding: 10px; margin: 10px;">---</div>
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+        <button onclick="pressNum('1')">1</button><button onclick="pressNum('2')">2</button><button onclick="pressNum('3')">3</button>
+        <button onclick="pressNum('4')">4</button><button onclick="pressNum('5')">5</button><button onclick="pressNum('6')">6</button>
+        <button onclick="pressNum('7')">7</button><button onclick="pressNum('8')">8</button><button onclick="pressNum('9')">9</button>
+        <button onclick="clearNum()">X</button><button onclick="pressNum('0')">0</button><button onclick="checkBypass()">OK</button>
+    </div>
+    <div id="mm-log" style="font-size: 10px; height: 50px; overflow: auto; margin-top: 10px;"></div>
+    <button onclick="closeModal('bypass-screen')" style="margin-top: 10px;">VOLVER</button>
+</div>
+
 <script>
-    let setupDone = false;
-    let scanMode = 'ID';
     let isProcessing = false;
-    let consolesFound = [];
-    let currentPlayer = null;
-    let currentGuess = "";
-    
-    let game = JSON.parse(localStorage.getItem('acheron_v8.2')) || {
+    let currentRegPlayer = 'pA';
+    let activePlayer = null;
+    let consoles = [];
+    let game = JSON.parse(localStorage.getItem('acheron_v8.3')) || {
         pass: [],
-        pA: { name: "JUGADOR A", char: null, role: null, scans: {} },
-        pB: { name: "JUGADOR B", char: null, role: null, scans: {} }
+        pA: { name: "", char: "", role: "", scanned: false },
+        pB: { name: "", char: "", role: "", scanned: false }
     };
 
     const v = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const scanSound = new Audio('media/audio/scan.mp3');
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
-        v.srcObject = stream; v.play(); requestAnimationFrame(tick);
-    });
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => { v.srcObject = s; v.play(); requestAnimationFrame(tick); });
 
-    if (game.pass && game.pass.length === 3) {
-        document.getElementById('btn-resume').style.display = 'block';
-    }
+    if(game.pA.name && game.pB.name) document.getElementById('btn-resume').style.display = 'block';
 
     function tick() {
         if (v.readyState === v.HAVE_ENOUGH_DATA && !isProcessing) {
             canvas.height = v.videoHeight; canvas.width = v.videoWidth;
             ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
             const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-            if (code && code.data.toLowerCase().startsWith("acheron_")) {
-                handleQR(code.data.toLowerCase());
-            }
+            if (code && code.data.toLowerCase().startsWith("acheron_")) handleQR(code.data.toLowerCase());
         }
         requestAnimationFrame(tick);
     }
 
     function handleQR(data) {
         isProcessing = true;
-        if (!setupDone && game.pass.length < 3) {
-            if (data.includes("cons_") && !consolesFound.includes(data)) {
-                consolesFound.push(data);
-                document.getElementById('setup-progress').innerText = consolesFound.length + "/3";
-                if (consolesFound.length === 3) {
-                    game.pass = consolesFound.map(c => c.split('_').pop());
-                    document.getElementById('btn-start-game').style.display = 'block';
+        
+        // FASE 1: CONSOLAS
+        if (game.pass.length < 3) {
+            if (data.includes("cons_") && !consoles.includes(data)) {
+                consoles.push(data);
+                document.getElementById('setup-progress').innerText = consoles.length + "/3";
+                if (consoles.length === 3) {
+                    game.pass = consoles.map(c => c.split('_').pop());
                     save();
+                    setTimeout(() => { document.getElementById('setup-screen').style.display = 'none'; showRegistration(); }, 1000);
                 }
             }
-            setTimeout(() => isProcessing = false, 1500);
-            return;
         }
-        if (currentPlayer && !game[currentPlayer].char) {
-            if (data.includes("char_")) {
-                game[currentPlayer].char = data.replace("acheron_char_", "");
-                assignRole(game[currentPlayer]);
-                save();
-                enterShip();
-            }
-            setTimeout(() => isProcessing = false, 1500);
-            return;
-        }
-        if (data.includes("char_")) {
-            let charScanned = data.replace("acheron_char_", "");
-            if (charScanned === game[currentPlayer].char) {
-                if (scanMode !== 'ID') runAnalysis(game[currentPlayer]);
-                else { document.getElementById('btn-bio').style.display = 'block'; isProcessing = false; }
+        // FASE 2: REGISTRO CARACTER
+        else if (!game[currentRegPlayer].char && data.includes("char_")) {
+            game[currentRegPlayer].char = data.replace("acheron_char_", "");
+            game[currentRegPlayer].role = ['HUMANO', 'CYBORG', 'ADAPTOID'][Math.floor(Math.random()*3)];
+            save();
+            if (currentRegPlayer === 'pA') {
+                currentRegPlayer = 'pB';
+                showRegistration();
             } else {
-                alert("ERROR: RETINA NO COINCIDE.");
-                isProcessing = false;
+                goToHub();
             }
         }
+        // FASE 3: DETECTAR CARTA EN JUEGO (BIO-LOG)
+        else if (activePlayer && data.includes("char_")) {
+            if (data.includes(game[activePlayer].char)) {
+                document.getElementById('btn-bio').style.display = 'block';
+                document.getElementById('terminal').innerText = "> BIO-LOG DESBLOQUEADO";
+            }
+        }
+        
+        setTimeout(() => isProcessing = false, 1500);
     }
 
+    // FLUJO PANTALLAS
     function startNewGame() {
-        if(confirm("¿INICIAR NUEVA MISIÓN?")) {
-            localStorage.clear();
-            game = { pass: [], pA: { name: "JUGADOR A", char: null, role: null, scans: {} }, pB: { name: "JUGADOR B", char: null, role: null, scans: {} } };
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('setup-screen').style.display = 'flex';
-            setupDone = false;
-        }
-    }
-
-    function resumeGame() {
-        setupDone = true;
+        localStorage.clear();
+        game = { pass: [], pA: { name: "", char: "", role: "", scanned: false }, pB: { name: "", char: "", role: "", scanned: false } };
         document.getElementById('start-screen').style.display = 'none';
-        showLogin();
+        document.getElementById('setup-screen').style.display = 'flex';
     }
 
-    function showLogin() {
-        document.getElementById('setup-screen').style.display = 'none';
-        document.getElementById('login-screen').style.display = 'flex';
-        document.getElementById('player-selector').style.display = 'block';
-        document.getElementById('verify-zone').style.display = 'none';
-        document.getElementById('name-input-zone').style.display = 'none';
+    function showRegistration() {
+        document.getElementById('reg-screen').style.display = 'flex';
+        document.getElementById('reg-title').innerText = "REGISTRO " + (currentRegPlayer === 'pA' ? "JUGADOR A" : "JUGADOR B");
+        document.getElementById('reg-step-1').style.display = 'block';
+        document.getElementById('reg-step-2').style.display = 'none';
+        document.getElementById('reg-name').value = "";
     }
 
-    function selectPlayer(p) {
-        currentPlayer = p === 'A' ? 'pA' : 'pB';
-        if (game[currentPlayer].name.startsWith("JUGADOR")) {
-            document.getElementById('player-selector').style.display = 'none';
-            document.getElementById('name-input-zone').style.display = 'block';
-        } else if (!game[currentPlayer].char) {
-            document.getElementById('player-selector').style.display = 'none';
-            document.getElementById('verify-zone').style.display = 'block';
-            isProcessing = false; 
-        } else {
-            enterShip();
+    function saveRegName() {
+        let n = document.getElementById('reg-name').value;
+        if(n) {
+            game[currentRegPlayer].name = n.toUpperCase();
+            document.getElementById('reg-step-1').style.display = 'none';
+            document.getElementById('reg-step-2').style.display = 'block';
         }
     }
 
-    function saveName() {
-        let n = document.getElementById('player-name-field').value;
-        if (n) { game[currentPlayer].name = n.toUpperCase(); save(); selectPlayer(currentPlayer === 'pA' ? 'A' : 'B'); }
+    function goToHub() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('reg-screen').style.display = 'none';
+        document.getElementById('ui-wrapper').style.display = 'none';
+        document.getElementById('hub-screen').style.display = 'flex';
+        document.getElementById('btn-hub-pA').innerText = game.pA.name;
+        document.getElementById('btn-hub-pB').innerText = game.pB.name;
     }
 
-    function enterShip() {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('header-info').innerText = game[currentPlayer].name;
-        document.getElementById('bg-char').src = `media/images/${game[currentPlayer].char}.jpg`;
-        document.getElementById('terminal-output').innerText = "> BIENVENIDO, " + game[currentPlayer].name;
-        isProcessing = false;
+    function loginPlayer(p) {
+        activePlayer = p;
+        document.getElementById('hub-screen').style.display = 'none';
+        document.getElementById('ui-wrapper').style.display = 'flex';
+        document.getElementById('player-display').innerText = game[p].name;
+        document.getElementById('bg-char').src = `media/images/${game[p].char}.jpg`;
+        document.getElementById('terminal').innerText = "> SESIÓN INICIADA: " + game[p].name;
+        document.getElementById('btn-bio').style.display = 'none';
+        // Reset escaneo por turno
+        game[p].scanned = false;
     }
 
-    function openMastermind() { document.getElementById('mastermind-screen').style.display = 'flex'; }
-    function pressNum(n) { if(currentGuess.length < 3) { currentGuess += n; document.getElementById('mm-display').innerText = currentGuess; } }
-    function clearNum() { currentGuess = ""; document.getElementById('mm-display').innerText = "---"; }
-    function checkMastermind() {
-        if(currentGuess.length < 3) return;
-        let secret = game.pass, guessArr = currentGuess.split(""), posMatch = 0, numMatch = 0;
-        let sCopy = [...secret], gCopy = [...guessArr];
-        for(let i=0; i<3; i++) { if(gCopy[i] === sCopy[i]) { posMatch++; sCopy[i] = null; gCopy[i] = "X"; } }
-        for(let i=0; i<3; i++) { if(gCopy[i] !== "X" && sCopy.includes(gCopy[i])) { numMatch++; sCopy[sCopy.indexOf(gCopy[i])] = null; } }
-        let res = `INTENTO ${currentGuess}: [${posMatch} BLOQUEOS] [${numMatch} FIRMAS]`;
-        if (posMatch === 3) res = "!!! ACCESO TOTAL CONCEDIDO !!!";
-        document.getElementById('mm-log').innerHTML = res + "<br>" + document.getElementById('mm-log').innerHTML;
-        clearNum();
-    }
-
-    function runAnalysis(player) {
-        scanSound.play().catch(()=>{});
+    function runScan(mode) {
+        if (game[activePlayer].scanned) {
+            alert("SISTEMA SOBRECALENTADO. SOLO UN ESCANEO POR TURNO.");
+            return;
+        }
+        isProcessing = true;
         const line = document.getElementById('scan-line');
         line.style.display = 'block';
         line.style.animation = 'moveScan 2s linear 1';
+        
         setTimeout(() => {
             line.style.display = 'none';
-            document.getElementById('res-modal').style.display = 'flex';
-            let match = (scanMode === 'NEURONAL' && player.role === 'HUMANO') || (scanMode === 'EM' && player.role === 'CYBORG') || (scanMode === 'MUTAGENO' && player.role === 'ADAPTOID');
-            let p = (player.scans[scanMode] || 0) === 0 ? (match ? r(50,75) : r(0,5)) : (match ? r(90,99) : r(5,15));
+            let match = (mode === 'NEURONAL' && game[activePlayer].role === 'HUMANO') || (mode === 'EM' && game[activePlayer].role === 'CYBORG') || (mode === 'MUTAGENO' && game[activePlayer].role === 'ADAPTOID');
+            let p = match ? Math.floor(Math.random() * 20) + 75 : Math.floor(Math.random() * 15);
             document.getElementById('res-perc').innerText = p + "%";
-            document.getElementById('res-msg').innerText = p > 80 ? "FIRMA POSITIVA" : "DATOS INSUFICIENTES";
-            player.scans[scanMode] = (player.scans[scanMode] || 0) + 1;
-            save();
+            document.getElementById('res-modal').style.display = 'flex';
+            game[activePlayer].scanned = true;
+            isProcessing = false;
         }, 2000);
     }
-    function playBioLog() {
-        const vid = document.getElementById('p-video');
-        vid.src = `media/videos/${game[currentPlayer].char}.mp4`;
-        document.getElementById('vid-modal').style.display = 'flex';
-        vid.load(); vid.play();
+
+    function logout() { activePlayer = null; goToHub(); }
+    function playVideo() { window.open(`media/videos/${game[activePlayer].char}.mp4`); }
+    function openBypass() { document.getElementById('bypass-screen').style.display = 'flex'; }
+    function save() { localStorage.setItem('acheron_v8.3', JSON.stringify(game)); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // MASTERMIND LOGIC
+    let guess = "";
+    function pressNum(n) { if(guess.length < 3) { guess += n; document.getElementById('mm-display').innerText = guess; } }
+    function clearNum() { guess = ""; document.getElementById('mm-display').innerText = "---"; }
+    function checkBypass() {
+        if(guess.length < 3) return;
+        let s = game.pass, g = guess.split(""), pos = 0, num = 0;
+        let sC = [...s], gC = [...g];
+        for(let i=0; i<3; i++) { if(gC[i] === sC[i]) { pos++; sC[i] = null; gC[i] = "X"; } }
+        for(let i=0; i<3; i++) { if(gC[i] !== "X" && sC.includes(gC[i])) { num++; sC[sC.indexOf(gC[i])] = null; } }
+        let res = `[${guess}] B:${pos} F:${num}`;
+        if(pos === 3) res = "ACCESO TOTAL CONCEDIDO";
+        document.getElementById('mm-log').innerHTML = res + "<br>" + document.getElementById('mm-log').innerHTML;
+        clearNum();
     }
-    function stopVideo() { document.getElementById('p-video').pause(); closeModal('vid-modal'); }
-    function setMode(m) { scanMode = m; document.getElementById('terminal-output').innerText = "> MODO: " + m; }
-    function save() { localStorage.setItem('acheron_v8.2', JSON.stringify(game)); }
-    function r(min, max) { return Math.floor(Math.random() * (max - min + 1) + min); }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; isProcessing = false; scanMode = 'ID'; }
-    function assignRole(player) { player.role = ['HUMANO', 'CYBORG', 'ADAPTOID'][r(0,2)]; }
 </script>
 </body>
 </html>
