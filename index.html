@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EXODUS - METASCANNER V8.8</title>
+    <title>EXODUS - METASCANNER V8.9</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
         body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; }
         
         .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5000; }
-        #bg-char { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.2; z-index: -1; filter: grayscale(100%); }
+        #bg-char { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.2; z-index: -1; filter: grayscale(100%); transition: opacity 1s; }
         
-        /* CENTRADO DE BOTONES Y MODALES */
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 5, 0, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
         
         #ui-wrapper { display: none; flex-direction: column; height: 100vh; position: relative; }
@@ -27,8 +26,9 @@
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; background: #000; flex-grow: 1; align-content: center; }
         #btn-bio { grid-column: span 3; display:none; background: #004466; color: #fff; border: 2px solid #00ffff; font-weight: bold; padding: 18px; margin-bottom: 5px; }
         
-        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 10px; cursor: pointer; border-radius: 4px; display: inline-block; }
-        .btn-main { padding: 20px 40px; font-size: 1.1rem; border-color: #00ffff; color: #00ffff; margin: 10px 0; }
+        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 10px; cursor: pointer; border-radius: 4px; }
+        button:active { background: var(--crt-green); color: black; }
+        .btn-main { padding: 20px 40px; font-size: 1.1rem; border-color: #00ffff; color: #00ffff; margin: 10px 0; width: 80%; }
         
         #terminal { height: 35px; padding: 5px 15px; font-size: 10px; background: #050a05; border-top: 1px solid #1a331a; color: #666; display: flex; align-items: center; }
         input { background: black; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px; text-align: center; font-size: 1.2rem; width: 85%; margin: 10px 0; }
@@ -41,34 +41,38 @@
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">EXODUS CORE</h1>
-    <p>METASCANNER V8.8</p>
-    <button onclick="startNewGame()" class="btn-main">INICIAR MISIÓN</button>
-    <button id="btn-resume" onclick="goToHub()" style="display:none; color: var(--cold-blue); border-color: var(--cold-blue); padding: 10px 20px;">REANUDAR MISIÓN</button>
+    <p>SISTEMA METASCANNER V8.9</p>
+    <button onclick="startNewGame()" class="btn-main" id="btn-start-mision">INICIAR MISIÓN</button>
+    <button id="btn-resume" onclick="goToHub()" style="display:none; color: var(--cold-blue); border-color: var(--cold-blue); padding: 15px 30px; margin-top: 10px; width: 80%; font-size: 1rem;">REANUDAR MISIÓN</button>
 </div>
 
 <div id="setup-screen" class="modal">
     <h2 style="color: var(--cold-blue)">CALIBRACIÓN DE SISTEMA</h2>
-    <p>Escanea 3 códigos de Consola</p>
-    <div id="setup-progress" style="font-size: 6rem; color: white;">0/3</div>
+    <p>Detectando frecuencias QR...</p>
+    <div id="setup-progress" style="font-size: 6rem; color: white; margin: 20px 0;">0/3</div>
+    <p style="font-size: 10px; opacity: 0.5;">Escanee códigos de consola para sincronizar</p>
 </div>
 
 <div id="reg-screen" class="modal">
-    <h2 id="reg-title">REGISTRO DE OPERADOR</h2>
+    <h2 id="reg-title">REGISTRO</h2>
     <div id="reg-step-1">
-        <p>IDENTIFICACIÓN:</p>
-        <input type="text" id="reg-name" placeholder="ESCRIBA NOMBRE">
-        <button onclick="saveRegName()" style="width: 100%; font-size: 1.2rem;">VALIDAR</button>
+        <p>IDENTIFICACIÓN OPERADOR:</p>
+        <input type="text" id="reg-name" placeholder="NOMBRE..." autocomplete="off">
+        <button onclick="saveRegName()" style="width: 100%; font-size: 1.2rem; padding: 20px;">VALIDAR</button>
     </div>
     <div id="reg-step-2" style="display:none;">
         <p style="color: var(--cold-blue); font-size: 1.3rem;">ESCANEA TU CARTA</p>
-        <p style="font-size: 11px; opacity: 0.6; margin-top: 20px;">VINCULACIÓN BIOMÉTRICA ÚNICA</p>
+        <div style="border: 1px dashed var(--cold-blue); padding: 30px; margin: 20px 0;">
+            <p id="reg-char-name" style="color: white; font-size: 0.8rem;">ESPERANDO QR...</p>
+        </div>
+        <p style="font-size: 11px; opacity: 0.6;">VINCULACIÓN BIOMÉTRICA ÚNICA</p>
     </div>
 </div>
 
 <div id="hub-screen" class="modal">
-    <button onclick="resetGamePrompt()" style="position: absolute; top: 15px; color: var(--danger-red); border: 1px solid var(--danger-red); font-size: 9px;">REINICIAR NÚCLEO</button>
+    <button onclick="resetGamePrompt()" style="position: absolute; top: 15px; color: var(--danger-red); border: 1px solid var(--danger-red); font-size: 9px; padding: 8px;">REINICIAR NÚCLEO</button>
     <h2 style="color: #00ffff; margin-top: 40px;">PANEL DE ACCESO</h2>
-    <p>SELECCIONE PERFIL:</p>
+    <p>SELECCIONE PERFIL ACTIVO:</p>
     <button id="btn-hub-pA" onclick="loginPlayer('pA')" style="width: 280px; padding: 25px; margin-bottom: 15px;">---</button>
     <button id="btn-hub-pB" onclick="loginPlayer('pB')" style="width: 280px; padding: 25px;">---</button>
 </div>
@@ -87,14 +91,14 @@
         <div id="res-modal" class="modal">
             <h1 id="res-perc" style="font-size: 5rem; color: white;">0%</h1>
             <p id="res-msg">COINCIDENCIA</p>
-            <button onclick="closeModal('res-modal')" style="width: 180px; padding: 15px;">CERRAR VENTANA</button>
+            <button onclick="closeModal('res-modal')" style="width: 180px; padding: 15px;">CERRAR</button>
         </div>
     </div>
 
     <div id="terminal">> TERMINAL EXODUS LISTA</div>
 
     <div class="btn-group">
-        <button id="btn-bio" onclick="playVideo()">REPRODUCIR BIO-LOG ANIMADO</button>
+        <button id="btn-bio" onclick="playVideo()">BIO-LOG ANIMADO</button>
         <button onclick="runScan('NEURONAL')">SCAN NEURONAL</button>
         <button onclick="runScan('EM')">SCAN ELECTROMAG.</button>
         <button onclick="runScan('MUTAGENO')">SCAN MUTÁGENO</button>
@@ -120,8 +124,8 @@
     let consoles = [];
     const scanSound = new Audio('media/audio/scan.mp3');
 
-    // Cambiamos el nombre de la key de storage para EXODUS
-    let game = JSON.parse(localStorage.getItem('exodus_v8.8')) || {
+    // Inicialización de datos
+    let game = JSON.parse(localStorage.getItem('exodus_save')) || {
         pass: [],
         pA: { name: "", char: "", role: "", scanned: false },
         pB: { name: "", char: "", role: "", scanned: false }
@@ -135,8 +139,11 @@
         v.srcObject = s; v.play(); requestAnimationFrame(tick); 
     });
 
-    // Mostrar botón reanudar si hay datos
-    if(game.pA.name && game.pB.name) document.getElementById('btn-resume').style.display = 'block';
+    // Lógica de inicio: ¿Mostramos botón reanudar?
+    if(game.pA.name && game.pB.name) {
+        document.getElementById('btn-resume').style.display = 'block';
+        document.getElementById('btn-start-mision').innerText = "NUEVA MISIÓN";
+    }
 
     function tick() {
         if (v.readyState === v.HAVE_ENOUGH_DATA && !isProcessing) {
@@ -149,12 +156,11 @@
     }
 
     function handleQR(data) {
-        // REFUERZO DE SEGURIDAD: Validación de identidad en sesión activa
         if (activePlayer) {
             let scannedChar = data.replace("acheron_char_", "");
             if (data.includes("char_") && scannedChar !== game[activePlayer].char) {
                 isProcessing = true;
-                alert("⚠️ ERROR DE IDENTIDAD: Esta carta no pertenece al operador logueado.");
+                alert("⚠️ ERROR DE IDENTIDAD: Esta carta no pertenece a " + game[activePlayer].name);
                 setTimeout(() => isProcessing = false, 3000);
             }
             return; 
@@ -162,7 +168,6 @@
 
         isProcessing = true; 
         
-        // FASE SETUP
         if (game.pass.length < 3) {
             if (data.includes("cons_") && !consoles.includes(data)) {
                 consoles.push(data);
@@ -174,7 +179,6 @@
                 }
             }
         }
-        // FASE REGISTRO
         else if (document.getElementById('reg-step-2').style.display === 'block' && data.includes("char_")) {
             let scannedChar = data.replace("acheron_char_", "");
             let other = (currentRegPlayer === 'pA') ? 'pB' : 'pA';
@@ -197,14 +201,22 @@
     }
 
     function startNewGame() {
-        if(confirm("¿INICIAR NUEVA MISIÓN? Se borrarán los datos actuales.")) {
-            localStorage.clear();
-            game = { pass: [], pA: { name: "", char: "", role: "", scanned: false }, pB: { name: "", char: "", role: "", scanned: false } };
-            document.getElementById('start-screen').style.display = 'none';
-            document.getElementById('setup-screen').style.display = 'flex';
-            consoles = [];
-            currentRegPlayer = 'pA';
+        // Solo confirmar si realmente hay datos previos
+        if(game.pA.name) {
+            if(!confirm("¿BORRAR DATOS Y REINICIAR NÚCLEO?")) return;
         }
+        
+        // Limpieza profunda de memoria
+        localStorage.removeItem('exodus_save');
+        game = { pass: [], pA: { name: "", char: "", role: "", scanned: false }, pB: { name: "", char: "", role: "", scanned: false } };
+        consoles = [];
+        currentRegPlayer = 'pA';
+        
+        // Reset Visual
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('setup-screen').style.display = 'flex';
+        document.getElementById('btn-resume').style.display = 'none';
+        document.getElementById('btn-start-mision').innerText = "INICIAR MISIÓN";
     }
 
     function resetGamePrompt() { startNewGame(); }
@@ -214,7 +226,7 @@
         document.getElementById('reg-title').innerText = "VINCULACIÓN: JUGADOR " + (currentRegPlayer === 'pA' ? "A" : "B");
         document.getElementById('reg-step-1').style.display = 'block';
         document.getElementById('reg-step-2').style.display = 'none';
-        document.getElementById('reg-name').value = ""; // Limpieza total de nombre
+        document.getElementById('reg-name').value = "";
     }
 
     function saveRegName() {
@@ -242,12 +254,13 @@
         document.getElementById('ui-wrapper').style.display = 'flex';
         document.getElementById('player-display').innerText = game[p].name;
         document.getElementById('bg-char').src = `media/images/${game[p].char}.jpg`;
+        document.getElementById('bg-char').style.opacity = "0.2";
         document.getElementById('btn-bio').style.display = 'block';
         game[p].scanned = false;
     }
 
     function runScan(mode) {
-        if (game[activePlayer].scanned) { alert("SISTEMA AGOTADO POR SESIÓN."); return; }
+        if (game[activePlayer].scanned) { alert("SISTEMA BLOQUEADO HASTA SIGUIENTE SESIÓN."); return; }
         scanSound.currentTime = 0; scanSound.play();
         const line = document.getElementById('scan-line');
         line.style.display = 'block';
@@ -262,10 +275,16 @@
         }, 1500);
     }
 
-    function logout() { activePlayer = null; document.getElementById('bg-char').src = ""; goToHub(); }
+    function logout() { 
+        activePlayer = null; 
+        document.getElementById('bg-char').style.opacity = "0";
+        setTimeout(() => { document.getElementById('bg-char').src = ""; }, 1000);
+        goToHub(); 
+    }
+
     function playVideo() { window.open(`media/videos/${game[activePlayer].char}.mp4`, '_blank'); }
     function openBypass() { document.getElementById('bypass-screen').style.display = 'flex'; }
-    function save() { localStorage.setItem('exodus_v8.8', JSON.stringify(game)); }
+    function save() { localStorage.setItem('exodus_save', JSON.stringify(game)); }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
     let guess = "";
@@ -277,7 +296,7 @@
         let sC = [...s], gC = [...g];
         for(let i=0; i<3; i++) { if(gC[i] === sC[i]) { pos++; sC[i] = null; gC[i] = "X"; } }
         for(let i=0; i<3; i++) { if(gC[i] !== "X" && sC.includes(gC[i])) { num++; sC[sC.indexOf(gC[i])] = null; } }
-        alert(`RESULTADO: ${pos} BIEN, ${num} MOVIBLES`);
+        alert(`RESULTADO: ${pos} BIEN / ${num} EN OTRA POSICIÓN`);
         guess = ""; document.getElementById('mm-display').innerText = "---";
     }
 </script>
