@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>METASCANNER - ACHERON V8.5</title>
+    <title>METASCANNER - ACHERON V8.6</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
@@ -14,17 +14,20 @@
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 5, 0, 0.96); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
         
         #ui-wrapper { display: none; flex-direction: column; height: 100vh; position: relative; }
-        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; }
+        #header { border-bottom: 1px solid var(--crt-green); padding: 10px; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; z-index: 10; }
         
         #camera-container { position: relative; flex-grow: 1; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; }
         #video { width: 100%; height: 100%; object-fit: cover; }
 
-        /* CORRECCIÓN ANIMACIÓN BARRA */
         #scan-line { position: absolute; width: 100%; height: 5px; background: var(--crt-green); top: -10px; display: none; box-shadow: 0 0 20px var(--crt-green); z-index: 1000; }
-        @keyframes moveScan { 
-            0% { top: 0%; opacity: 1; }
-            90% { opacity: 1; }
-            100% { top: 100%; opacity: 0; }
+        @keyframes moveScan { 0% { top: 0%; opacity: 1; } 100% { top: 100%; opacity: 0; } }
+
+        /* BOTÓN BIO-LOG REUBICADO Y MEJORADO */
+        #btn-bio { 
+            position: absolute; bottom: 20px; z-index: 2000;
+            background: rgba(0, 68, 102, 0.9); color: #fff; border: 2px solid #00ffff;
+            padding: 15px 30px; font-weight: bold; border-radius: 8px; font-family: inherit;
+            box-shadow: 0 0 15px #00ffff; display: none; text-transform: uppercase;
         }
 
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: #000; }
@@ -42,7 +45,7 @@
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">ACHERON CORE</h1>
-    <p>METASCANNER V8.5</p>
+    <p>METASCANNER V8.6</p>
     <button onclick="startNewGame()" style="padding: 20px 40px; font-size: 1.2rem; border-color: #00ffff; color: #00ffff; margin-top: 30px; background: rgba(0,255,255,0.1);">INICIAR MISIÓN</button>
     <button id="btn-resume" onclick="goToHub()" style="display:none; margin-top: 20px; padding: 10px; border-color: var(--cold-blue); color: var(--cold-blue);">REANUDAR PARTIDA</button>
 </div>
@@ -61,7 +64,8 @@
         <button onclick="saveRegName()" style="margin-top: 20px; width: 100%;">VALIDAR</button>
     </div>
     <div id="reg-step-2" style="display:none;">
-        <p style="color: var(--cold-blue);">ESCANEA TU CARTA</p>
+        <p style="color: var(--cold-blue); font-size: 1.2rem;">ESCANEA TU CARTA</p>
+        <p id="reg-error" style="color: var(--danger-red); display:none; font-size: 0.8rem; margin-top: 10px;">ERROR: IDENTIDAD YA ASIGNADA</p>
     </div>
 </div>
 
@@ -75,7 +79,7 @@
 
 <div id="ui-wrapper">
     <div id="header">
-        <button onclick="logout()" class="btn-blue">CERRAR SESIÓN</button>
+        <button onclick="logout()" class="btn-blue">LOGOUT</button>
         <span id="player-display">---</span>
         <button onclick="openBypass()" class="btn-blue">BYPASS</button>
     </div>
@@ -83,21 +87,21 @@
         <div id="scan-line"></div>
         <video id="video" playsinline></video>
         <canvas id="canvas" style="display:none"></canvas>
+        <button id="btn-bio" onclick="playVideo()">VER BIO-LOG ANIMADO</button>
         
         <div id="res-modal" class="modal">
             <h1 id="res-perc" style="font-size: 5rem; margin: 0; color: white;">0%</h1>
             <h3 id="res-msg">ANALIZANDO...</h3>
-            <button onclick="closeModal('res-modal')" style="width: 180px; padding: 15px; margin-top: 20px;">VOLVER</button>
+            <button onclick="closeModal('res-modal')" style="width: 180px; padding: 15px; margin-top: 20px;">CERRAR</button>
         </div>
     </div>
     <div id="terminal" style="padding: 10px; font-size: 10px; background: #000; border-top: 1px solid var(--crt-green); height: 35px; color: #666;">
-        > SISTEMA DE ESCANEO LISTO
+        > SISTEMA DE ESCANEO ACTIVO
     </div>
     <div class="btn-group">
-        <button onclick="runScan('NEURONAL')">SCAN NEURONAL</button>
-        <button onclick="runScan('EM')">SCAN ELECTROMAG.</button>
-        <button onclick="runScan('MUTAGENO')">SCAN MUTÁGENO</button>
-        <button id="btn-bio" onclick="playVideo()" style="grid-column: span 3; display:none; background: #004466; color: #fff; border-color: #00ffff; font-weight: bold; margin-top: 5px; padding: 20px;">VER BIO-LOG ANIMADO</button>
+        <button onclick="runScan('NEURONAL')">NEURONAL</button>
+        <button onclick="runScan('EM')">ELECTROMAG.</button>
+        <button onclick="runScan('MUTAGENO')">MUTÁGENO</button>
     </div>
 </div>
 
@@ -122,7 +126,7 @@
     
     const scanSound = new Audio('media/audio/scan.mp3');
 
-    let game = JSON.parse(localStorage.getItem('acheron_v8.5')) || {
+    let game = JSON.parse(localStorage.getItem('acheron_v8.6')) || {
         pass: [],
         pA: { name: "", char: "", role: "", scanned: false },
         pB: { name: "", char: "", role: "", scanned: false }
@@ -149,7 +153,6 @@
     }
 
     function handleQR(data) {
-        // Bloqueo de 2 segundos para evitar bucles de sonido
         isProcessing = true; 
         
         // FASE 1: CONSOLAS
@@ -164,20 +167,27 @@
                 }
             }
         }
-        // FASE 2: REGISTRO CARTA
+        // FASE 2: REGISTRO CARTA (Con bloqueo de duplicados)
         else if (document.getElementById('reg-step-2').style.display === 'block' && data.includes("char_")) {
-            game[currentRegPlayer].char = data.replace("acheron_char_", "");
-            game[currentRegPlayer].role = ['HUMANO', 'CYBORG', 'ADAPTOID'][Math.floor(Math.random()*3)];
-            save();
-            if (currentRegPlayer === 'pA') {
-                currentRegPlayer = 'pB';
-                setTimeout(showRegistration, 500);
+            let characterId = data.replace("acheron_char_", "");
+            
+            // COMPROBAR SI YA ESTÁ ASIGNADO
+            if (currentRegPlayer === 'pB' && characterId === game.pA.char) {
+                document.getElementById('reg-error').style.display = 'block';
             } else {
-                setTimeout(goToHub, 500);
+                document.getElementById('reg-error').style.display = 'none';
+                game[currentRegPlayer].char = characterId;
+                game[currentRegPlayer].role = ['HUMANO', 'CYBORG', 'ADAPTOID'][Math.floor(Math.random()*3)];
+                save();
+                if (currentRegPlayer === 'pA') {
+                    currentRegPlayer = 'pB';
+                    setTimeout(showRegistration, 500);
+                } else {
+                    setTimeout(goToHub, 500);
+                }
             }
         }
         
-        // Desbloqueo del escáner tras 2 segundos
         setTimeout(() => { isProcessing = false; }, 2000);
     }
 
@@ -190,7 +200,7 @@
     }
 
     function resetGamePrompt() {
-        if(confirm("¿ESTÁS SEGURO? Se borrarán todos los datos de la misión actual.")) {
+        if(confirm("¿REINICIAR NÚCLEO? Se perderán todos los datos de la misión.")) {
             startNewGame();
             document.getElementById('hub-screen').style.display = 'none';
         }
@@ -230,11 +240,9 @@
         document.getElementById('player-display').innerText = game[p].name;
         document.getElementById('bg-char').src = `media/images/${game[p].char}.jpg`;
         
-        // MOSTRAR BOTÓN DE VÍDEO SIEMPRE QUE HAYA CARTA
         if(game[p].char) {
             document.getElementById('btn-bio').style.display = 'block';
         }
-        
         game[p].scanned = false;
     }
 
@@ -243,16 +251,13 @@
             alert("SISTEMA BLOQUEADO: Realiza Logout para nuevo turno.");
             return;
         }
-        
-        // 1. Sonido
         scanSound.currentTime = 0;
         scanSound.play();
 
-        // 2. Animación Barra (Corregida)
         const line = document.getElementById('scan-line');
         line.style.display = 'block';
         line.style.animation = 'none';
-        line.offsetHeight; // Truco para reiniciar animación
+        line.offsetHeight; 
         line.style.animation = 'moveScan 2s linear forwards';
         
         setTimeout(() => {
@@ -269,6 +274,7 @@
     function logout() { 
         activePlayer = null; 
         document.getElementById('bg-char').src = "";
+        document.getElementById('btn-bio').style.display = 'none';
         goToHub(); 
     }
     
@@ -277,10 +283,9 @@
     }
     
     function openBypass() { document.getElementById('bypass-screen').style.display = 'flex'; }
-    function save() { localStorage.setItem('acheron_v8.5', JSON.stringify(game)); }
+    function save() { localStorage.setItem('acheron_v8.6', JSON.stringify(game)); }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // BYPASS LOGIC
     let guess = "";
     function pressNum(n) { if(guess.length < 3) { guess += n; document.getElementById('mm-display').innerText = guess; } }
     function clearNum() { guess = ""; document.getElementById('mm-display').innerText = "---"; }
