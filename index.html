@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ACHERON CORE - V6.0</title>
+    <title>ACHERON CORE - V7.0</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
@@ -13,11 +13,11 @@
         #header { border-bottom: 1px solid var(--crt-green); padding: 10px; text-align: center; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; z-index: 100; }
         #camera-container { position: relative; flex-grow: 1; background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         #video { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
-        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 15, 0, 0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; }
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 15, 0, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; }
         #setup-screen { display: flex; } 
         #terminal-output { height: 60px; background: #000; border-top: 1px solid var(--crt-green); padding: 10px; font-size: 10px; color: #7f8c8d; }
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 10px; background: #000; z-index: 100; }
-        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 10px; cursor: pointer; pointer-events: auto; }
+        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 10px; cursor: pointer; }
         .btn-danger { border-color: var(--danger-red); color: var(--danger-red); }
         .btn-blue { border-color: var(--cold-blue); color: var(--cold-blue); display: none; grid-column: span 3; }
         #scan-line { position: absolute; width: 100%; height: 2px; background: var(--cold-blue); top: 0; display: none; box-shadow: 0 0 10px var(--cold-blue); z-index: 100; }
@@ -30,17 +30,17 @@
 
     <div id="setup-screen" class="modal">
         <h2 style="color: var(--cold-blue)">INICIALIZACIÓN</h2>
-        <p style="text-align:center">Escanea 3 QRs de Consola descartados</p>
+        <p style="text-align:center">Escanea 3 QRs de Consola</p>
         <div id="setup-progress" style="font-size: 4rem; margin: 10px; color: white;">0 / 3</div>
-        <div id="setup-log" style="color: var(--crt-green); font-size: 10px; margin-bottom: 20px;">[ BUSCANDO QR EN CÁMARA... ]</div>
-        <button id="btn-start" onclick="finishSetup()" style="display:none; width: 220px; background: var(--crt-green); color: #000; font-weight: bold; margin-bottom: 10px;">ACCEDER AL PUENTE</button>
-        <button onclick="finishSetup()" style="border: 1px solid #555; color:#888; padding: 10px 20px; background: rgba(255,255,255,0.05);">SALTAR SETUP / MODO DEBUG</button>
+        <div id="setup-log" style="color: var(--crt-green); font-size: 10px;">[ BUSCANDO SEÑAL... ]</div>
+        <button id="btn-start" onclick="finishSetup()" style="display:none; width: 220px; background: var(--crt-green); color: #000; margin-bottom: 10px;">ACCEDER AL PUENTE</button>
+        <button onclick="finishSetup()" style="border: 1px solid #444; color:#666; padding: 10px; font-size:8px;">[ MODO DEBUG / SALTAR ]</button>
     </div>
 
     <div id="ui-wrapper">
         <div id="header">
-            <button class="reset-btn" onclick="hardReset()">RESETEAR NAVE</button>
-            <span>ACHERON v6.0 // JUG:<span id="curr-p">A</span></span>
+            <button class="reset-btn" onclick="hardReset()">RESET NAVE</button>
+            <span>ACHERON v7.0 // JUGADOR:<span id="curr-p">A</span></span>
         </div>
 
         <div id="camera-container">
@@ -50,18 +50,18 @@
 
             <div id="res-modal" class="modal">
                 <h1 id="res-perc" style="font-size: 4rem; margin: 0;">0%</h1>
-                <h3 id="res-type">ANÁLISIS</h3>
+                <h3 id="res-type">ESCANEO</h3>
                 <p id="res-msg"></p>
                 <button onclick="closeModal('res-modal')" style="width: 150px">CERRAR</button>
             </div>
 
             <div id="vid-modal" class="modal">
                 <video id="p-video" style="width: 100%; max-height: 70%; border: 1px solid var(--cold-blue);"></video>
-                <button onclick="stopVideo()" style="margin-top: 20px; width: 150px">CERRAR BIO-LOG</button>
+                <button onclick="stopVideo()" style="margin-top: 20px; width: 150px">SALIR</button>
             </div>
         </div>
 
-        <div id="terminal-output">> SISTEMA OPERATIVO. ESCANEE CARTA.</div>
+        <div id="terminal-output">> SISTEMA ONLINE. ESCANEE IDENTIFICACIÓN.</div>
 
         <div class="btn-group">
             <button onclick="setMode('NEURONAL')">SCAN NEURONAL</button>
@@ -78,7 +78,7 @@
     let isProcessing = false;
     let consolesFound = [];
     
-    let game = JSON.parse(localStorage.getItem('ex_v6')) || {
+    let game = JSON.parse(localStorage.getItem('acheron_v7')) || {
         round: 1, turn: 'A', pA: { role: null, char: null, scans: {} }, pB: { role: null, char: null, scans: {} }, pass: []
     };
 
@@ -88,16 +88,15 @@
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(stream => {
         v.srcObject = stream; v.play(); requestAnimationFrame(tick);
-    }).catch(err => alert("Error cámara: " + err));
+    });
 
     function tick() {
         if (v.readyState === v.HAVE_ENOUGH_DATA && !isProcessing) {
             canvas.height = v.videoHeight; canvas.width = v.videoWidth;
             ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
             const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-            if (code && code.data.startsWith("ACHERON_")) {
-                console.log("QR Detectado:", code.data);
-                handleQR(code.data);
+            if (code && code.data.toLowerCase().startsWith("acheron_")) {
+                handleQR(code.data.toLowerCase());
             }
         }
         requestAnimationFrame(tick);
@@ -106,13 +105,13 @@
     function handleQR(data) {
         isProcessing = true;
         
+        // SETUP
         if (!setupDone) {
-            if (data.includes("CONS_") && !consolesFound.includes(data)) {
+            if (data.includes("cons_") && !consolesFound.includes(data)) {
                 consolesFound.push(data);
                 document.getElementById('setup-progress').innerText = consolesFound.length + " / 3";
-                document.getElementById('setup-log').innerText = "[ CONSOLA " + data.split('_')[2] + " REGISTRADA ]";
                 if (consolesFound.length === 3) {
-                    game.pass = consolesFound.map(c => c.split('_')[2]);
+                    game.pass = consolesFound;
                     document.getElementById('btn-start').style.display = 'block';
                 }
             }
@@ -120,9 +119,11 @@
             return;
         }
 
-        if (data.includes("CHAR_")) {
+        // PERSONAJE
+        if (data.includes("char_")) {
             let p = game.turn === 'A' ? game.pA : game.pB;
-            p.char = data.replace("ACHERON_CHAR_", "");
+            // Extraemos el nombre (ej: medic_man_001)
+            p.char = data.replace("acheron_char_", "").trim();
             document.getElementById('terminal-output').innerText = "> RECONOCIDO: " + p.char;
             document.getElementById('btn-bio').style.display = 'block';
             if (!p.role) assignRole(p);
@@ -162,26 +163,12 @@
     function playBioLog() {
         let p = game.turn === 'A' ? game.pA : game.pB;
         if (!p.char) return;
-
         const vid = document.getElementById('p-video');
-        
-        // Limpiamos el nombre: quitamos espacios y ponemos guiones bajos
-        let name = p.char.trim().replace(/\s+/g, '_'); 
-        
-        // AÑADIMOS UN "BYPASS" (?v=...) para saltarnos el error de GitHub
-        let versionBypass = Math.random().toString(36).substring(7);
-        vid.src = `media/videos/${name}.mp4?v=${versionBypass}`;
-        
-        console.log("Pidiendo a la nave el archivo:", vid.src);
-        
+        // RUTA IMPECABLE
+        vid.src = `media/videos/${p.char}.mp4`;
         document.getElementById('vid-modal').style.display = 'flex';
-        
-        // Forzamos la carga y reproducción
-        vid.load(); 
-        vid.play().catch(err => {
-            alert("SISTEMA: Error de comunicación con el archivo '" + name + ".mp4'. GitHub aún está procesando el cambio de nombre. Espera 1 minuto y reintenta.");
-            console.error(err);
-        });
+        vid.load();
+        vid.play().catch(err => alert("Error cargando: media/videos/" + p.char + ".mp4"));
     }
 
     function stopVideo() { document.getElementById('p-video').pause(); closeModal('vid-modal'); }
@@ -192,12 +179,12 @@
         save();
         alert("TURNO DEL JUGADOR " + game.turn);
     }
-    function setMode(m) { scanMode = m; document.getElementById('terminal-output').innerText = "> MODO: " + m + ". ESCANEE CARTA."; }
+    function setMode(m) { scanMode = m; document.getElementById('terminal-output').innerText = "> MODO: " + m; }
     function finishSetup() { setupDone = true; document.getElementById('setup-screen').style.display = 'none'; save(); }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; isProcessing = false; scanMode = 'ID'; }
-    function save() { localStorage.setItem('ex_v6', JSON.stringify(game)); }
+    function save() { localStorage.setItem('acheron_v7', JSON.stringify(game)); }
     function r(min, max) { return Math.floor(Math.random() * (max - min + 1) + min); }
-    function hardReset() { if(confirm("¿REINICIAR?")) { localStorage.removeItem('ex_v6'); location.reload(); } }
+    function hardReset() { if(confirm("¿REINICIAR SISTEMAS?")) { localStorage.removeItem('acheron_v7'); location.reload(); } }
 
     if (game.pass.length === 3) finishSetup();
 </script>
