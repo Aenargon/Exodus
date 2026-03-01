@@ -37,11 +37,13 @@
     <div class="crt-overlay"></div>
     <img id="bg-char" src="" alt="">
 
-    <div id="start-screen" class="modal" style="display: flex;">
+  <div id="start-screen" class="modal" style="display: flex;">
         <h1 style="color: var(--crt-green); letter-spacing: 5px;">ACHERON CORE</h1>
         <p>SISTEMA OPERATIVO DE EMERGENCIA</p>
-        <button onclick="hardReset()" style="margin-top: 50px; padding: 20px 40px; font-size: 1.2rem;">INICIAR NUEVA MISIÓN</button>
-        <button onclick="resumeGame()" id="btn-resume" style="display:none; margin-top: 10px; border-color: var(--cold-blue); color: var(--cold-blue);">REANUDAR CONEXIÓN</button>
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 50px;">
+            <button onclick="startNewGame()" style="padding: 20px 40px; font-size: 1.2rem;">INICIAR NUEVA MISIÓN</button>
+            <button onclick="resumeGame()" id="btn-resume" style="display:none; border-color: var(--cold-blue); color: var(--cold-blue); padding: 10px;">REANUDAR CONEXIÓN</button>
+        </div>
     </div>
 
     <div id="setup-screen" class="modal">
