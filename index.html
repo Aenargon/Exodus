@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EXODUS - METASCANNER V9.0</title>
+    <title>EXODUS - METASCANNER V9.1</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
@@ -23,7 +23,6 @@
         #scan-line { position: absolute; width: 100%; height: 5px; background: var(--crt-green); top: -10px; display: none; box-shadow: 0 0 20px var(--crt-green); z-index: 1000; }
         @keyframes moveScan { 0% { top: 0%; } 100% { top: 100%; } }
 
-        /* NUEVA GRID PARA BOTONES CON RESULTADOS */
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; background: #000; flex-grow: 1; align-content: start; }
         .scan-btn-container { display: flex; flex-direction: column; align-items: center; }
         .last-res { font-size: 12px; margin-top: 5px; color: var(--cold-blue); font-weight: bold; }
@@ -45,14 +44,30 @@
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">EXODUS CORE</h1>
-    <p>METASCANNER V9.0</p>
+    <p>METASCANNER V9.1</p>
     <button onclick="startNewGame()" class="btn-main" id="btn-start-mision">INICIAR MISIÓN</button>
     <button id="btn-resume" onclick="goToHub()" style="display:none; color: var(--cold-blue); border-color: var(--cold-blue); padding: 15px 30px; margin-top: 10px; width: 80%;">REANUDAR MISIÓN</button>
 </div>
 
 <div id="setup-screen" class="modal">
     <h2 style="color: var(--cold-blue)">CALIBRACIÓN</h2>
+    <p>Detectando frecuencias QR...</p>
     <div id="setup-progress" style="font-size: 6rem; color: white;">0/3</div>
+</div>
+
+<div id="reg-screen" class="modal">
+    <h2 id="reg-title">REGISTRO</h2>
+    <div id="reg-step-1">
+        <p>NOMBRE OPERADOR:</p>
+        <input type="text" id="reg-name" placeholder="..." autocomplete="off">
+        <button onclick="saveRegName()" style="width: 100%; font-size: 1.2rem; padding: 20px;">VINCULAR</button>
+    </div>
+    <div id="reg-step-2" style="display:none;">
+        <p style="color: var(--cold-blue); font-size: 1.3rem;">ESCANEA TU CARTA</p>
+        <div style="border: 1px dashed var(--cold-blue); padding: 30px; margin: 20px 0;">
+            <p style="color: white; font-size: 0.8rem;">ESPERANDO CÓDIGO...</p>
+        </div>
+    </div>
 </div>
 
 <div id="hub-screen" class="modal">
@@ -64,9 +79,9 @@
 
 <div id="ui-wrapper">
     <div id="header">
-        <button onclick="logout()" style="width: 80px; font-size: 8px; color: var(--cold-blue); border-color: var(--cold-blue);">LOGOUT</button>
-        <span id="player-display" style="font-size: 12px;">---</span>
-        <button onclick="openBypass()" style="width: 80px; font-size: 8px; color: var(--cold-blue); border-color: var(--cold-blue);">BYPASS</button>
+        <button onclick="logout()" style="width: 80px; font-size: 8px; color: var(--cold-blue);">LOGOUT</button>
+        <span id="player-display">---</span>
+        <button onclick="openBypass()" style="width: 80px; font-size: 8px; color: var(--cold-blue);">BYPASS</button>
     </div>
     
     <div id="camera-container">
@@ -80,36 +95,22 @@
         </div>
     </div>
 
-    <div id="terminal">> NÚCLEO EXODUS CONECTADO</div>
+    <div id="terminal">> NÚCLEO EXODUS ONLINE</div>
 
     <div class="btn-group">
         <button id="btn-bio" onclick="playVideo()">BIO-LOG ANIMADO</button>
-        
         <div class="scan-btn-container">
             <button id="btn-scan-NEURONAL" onclick="runScan('NEURONAL')">SCAN NEURONAL</button>
             <div id="val-NEURONAL" class="last-res">--%</div>
         </div>
-        
         <div class="scan-btn-container">
             <button id="btn-scan-EM" onclick="runScan('EM')">SCAN ELECTROMAG.</button>
             <div id="val-EM" class="last-res">--%</div>
         </div>
-        
         <div class="scan-btn-container">
             <button id="btn-scan-MUTAGENO" onclick="runScan('MUTAGENO')">SCAN MUTÁGENO</button>
             <div id="val-MUTAGENO" class="last-res">--%</div>
         </div>
-    </div>
-</div>
-
-<div id="reg-screen" class="modal">
-    <h2 id="reg-title">REGISTRO</h2>
-    <div id="reg-step-1">
-        <input type="text" id="reg-name" placeholder="NOMBRE..." autocomplete="off">
-        <button onclick="saveRegName()" style="width: 100%; font-size: 1.2rem; padding: 20px;">VALIDAR</button>
-    </div>
-    <div id="reg-step-2" style="display:none;">
-        <p style="color: var(--cold-blue);">ESCANEA TU CARTA</p>
     </div>
 </div>
 
@@ -131,12 +132,10 @@
     let activePlayer = null;
     let consoles = [];
     
-    // Audios
     const sndScan = new Audio('media/audio/scan.mp3');
     const sndSuccess = new Audio('media/audio/scan_match.mp3');
     const sndFail = new Audio('media/audio/scan_fail.mp3');
 
-    // Estructura de datos actualizada
     let game = JSON.parse(localStorage.getItem('exodus_v9')) || {
         pass: [],
         pA: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }},
@@ -188,7 +187,7 @@
                 }
             }
         }
-        else if (document.getElementById('reg-step-2').style.display === 'block' && data.includes("char_")) {
+        else if (document.getElementById('reg-step-2').style.display === 'flex' && data.includes("char_")) {
             let scannedChar = data.replace("acheron_char_", "");
             if (game.pA.char === scannedChar || game.pB.char === scannedChar) {
                 alert("ERROR: PERSONAJE YA ASIGNADO.");
@@ -207,48 +206,59 @@
         setTimeout(() => { isProcessing = false; }, 2000);
     }
 
+    function startNewGame() {
+        if(game.pA.name && !confirm("¿BORRAR TODO?")) return;
+        localStorage.removeItem('exodus_v9');
+        game = { pass: [], pA: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }}, pB: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }} };
+        consoles = [];
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('setup-screen').style.display = 'flex';
+        document.getElementById('setup-progress').innerText = "0/3";
+        isProcessing = false;
+    }
+
+    function resetGamePrompt() { startNewGame(); }
+
+    function showRegistration() {
+        document.getElementById('reg-screen').style.display = 'flex';
+        document.getElementById('reg-title').innerText = "REGISTRO: JUGADOR " + (currentRegPlayer === 'pA' ? "A" : "B");
+        document.getElementById('reg-step-1').style.display = 'block';
+        document.getElementById('reg-step-2').style.display = 'none';
+        document.getElementById('reg-name').value = "";
+    }
+
+    function saveRegName() {
+        let n = document.getElementById('reg-name').value;
+        if(n) {
+            game[currentRegPlayer].name = n.toUpperCase();
+            document.getElementById('reg-step-1').style.display = 'none';
+            document.getElementById('reg-step-2').style.display = 'flex';
+            isProcessing = false;
+        }
+    }
+
     function runScan(mode) {
         let pData = game[activePlayer].scans[mode];
         if (pData.blocked) return;
-
         sndScan.play();
         const line = document.getElementById('scan-line');
         line.style.display = 'block';
         line.style.animation = 'moveScan 1.5s linear forwards';
-        
         setTimeout(() => {
             line.style.display = 'none';
             pData.count++;
-            
-            // LÓGICA DE PORCENTAJES PEDRO V9.0
-            let isCorrectType = (mode === 'NEURONAL' && game[activePlayer].role === 'HUMANO') || 
-                               (mode === 'EM' && game[activePlayer].role === 'CYBORG') || 
-                               (mode === 'MUTAGENO' && game[activePlayer].role === 'ADAPTOID');
-            
+            let isCorrectType = (mode === 'NEURONAL' && game[activePlayer].role === 'HUMANO') || (mode === 'EM' && game[activePlayer].role === 'CYBORG') || (mode === 'MUTAGENO' && game[activePlayer].role === 'ADAPTOID');
             let result = 0;
             if (pData.count === 1) {
-                if (isCorrectType) {
-                    result = Math.floor(Math.random() * 15) + 70; // 70-85% (Duda positiva)
-                } else {
-                    result = Math.floor(Math.random() * 15); // 0-15% (No rotundo)
-                    pData.blocked = true;
-                    sndFail.play();
-                }
-            } else if (pData.count === 2) {
-                if (isCorrectType) {
-                    result = 100; // ¡Éxito!
-                    sndSuccess.play();
-                    document.getElementById('res-msg').innerText = "VÍNCULO CONFIRMADO";
-                } else {
-                    result = Math.floor(Math.random() * 10); // Era una falsa alarma
-                    sndFail.play();
-                }
+                if (isCorrectType) { result = Math.floor(Math.random() * 15) + 70; } 
+                else { result = Math.floor(Math.random() * 15); pData.blocked = true; sndFail.play(); }
+            } else {
+                if (isCorrectType) { result = 100; sndSuccess.play(); document.getElementById('res-msg').innerText = "VÍNCULO CONFIRMADO"; } 
+                else { result = Math.floor(Math.random() * 10); sndFail.play(); }
                 pData.blocked = true;
             }
-
             pData.val = result;
             updateScanUI();
-            
             document.getElementById('res-perc').innerText = result + "%";
             document.getElementById('res-modal').style.display = 'flex';
             save();
@@ -275,14 +285,12 @@
     }
 
     function logout() { activePlayer = null; document.getElementById('bg-char').style.opacity = "0"; goToHub(); }
-    function startNewGame() { if(game.pA.name && !confirm("¿BORRAR TODO?")) return; localStorage.removeItem('exodus_v9'); location.reload(); }
     function goToHub() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); document.getElementById('hub-screen').style.display='flex'; }
     function save() { localStorage.setItem('exodus_v9', JSON.stringify(game)); }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; document.getElementById('res-msg').innerText = "ANALIZANDO..."; }
     function playVideo() { window.open(`media/videos/${game[activePlayer].char}.mp4`, '_blank'); }
     function openBypass() { document.getElementById('bypass-screen').style.display = 'flex'; }
     
-    // Bypass logic (se mantiene igual)
     let guess = "";
     function pressNum(n) { if(guess.length < 3) { guess += n; document.getElementById('mm-display').innerText = guess; } }
     function clearNum() { guess = ""; document.getElementById('mm-display').innerText = "---"; }
