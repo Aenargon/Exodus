@@ -3,31 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EXODUS - METASCANNER V8.9</title>
+    <title>EXODUS - METASCANNER V9.0</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
         body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; }
         
         .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5000; }
-        #bg-char { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.2; z-index: -1; filter: grayscale(100%); transition: opacity 1s; }
+        #bg-char { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0; z-index: -1; filter: grayscale(100%); transition: opacity 1s; }
         
         .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 5, 0, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
         
         #ui-wrapper { display: none; flex-direction: column; height: 100vh; position: relative; }
         #header { height: 50px; border-bottom: 1px solid var(--crt-green); padding: 0 15px; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         
-        #camera-container { position: relative; height: 42vh; overflow: hidden; background: #000; border-bottom: 2px solid #111; display: flex; align-items: center; justify-content: center; }
+        #camera-container { position: relative; height: 40vh; overflow: hidden; background: #000; border-bottom: 2px solid #111; display: flex; align-items: center; justify-content: center; }
         #video { width: 100%; height: 100%; object-fit: cover; }
 
         #scan-line { position: absolute; width: 100%; height: 5px; background: var(--crt-green); top: -10px; display: none; box-shadow: 0 0 20px var(--crt-green); z-index: 1000; }
         @keyframes moveScan { 0% { top: 0%; } 100% { top: 100%; } }
 
-        .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; background: #000; flex-grow: 1; align-content: center; }
-        #btn-bio { grid-column: span 3; display:none; background: #004466; color: #fff; border: 2px solid #00ffff; font-weight: bold; padding: 18px; margin-bottom: 5px; }
+        /* NUEVA GRID PARA BOTONES CON RESULTADOS */
+        .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; background: #000; flex-grow: 1; align-content: start; }
+        .scan-btn-container { display: flex; flex-direction: column; align-items: center; }
+        .last-res { font-size: 12px; margin-top: 5px; color: var(--cold-blue); font-weight: bold; }
         
-        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 10px; cursor: pointer; border-radius: 4px; }
-        button:active { background: var(--crt-green); color: black; }
+        #btn-bio { grid-column: span 3; display:none; background: #004466; color: #fff; border: 2px solid #00ffff; font-weight: bold; padding: 18px; margin-bottom: 10px; }
+        
+        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 9px; cursor: pointer; border-radius: 4px; width: 100%; }
+        button:disabled { opacity: 0.3; border-color: #333; color: #555; cursor: not-allowed; }
         .btn-main { padding: 20px 40px; font-size: 1.1rem; border-color: #00ffff; color: #00ffff; margin: 10px 0; width: 80%; }
         
         #terminal { height: 35px; padding: 5px 15px; font-size: 10px; background: #050a05; border-top: 1px solid #1a331a; color: #666; display: flex; align-items: center; }
@@ -41,47 +45,28 @@
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">EXODUS CORE</h1>
-    <p>SISTEMA METASCANNER V8.9</p>
+    <p>METASCANNER V9.0</p>
     <button onclick="startNewGame()" class="btn-main" id="btn-start-mision">INICIAR MISIÓN</button>
-    <button id="btn-resume" onclick="goToHub()" style="display:none; color: var(--cold-blue); border-color: var(--cold-blue); padding: 15px 30px; margin-top: 10px; width: 80%; font-size: 1rem;">REANUDAR MISIÓN</button>
+    <button id="btn-resume" onclick="goToHub()" style="display:none; color: var(--cold-blue); border-color: var(--cold-blue); padding: 15px 30px; margin-top: 10px; width: 80%;">REANUDAR MISIÓN</button>
 </div>
 
 <div id="setup-screen" class="modal">
-    <h2 style="color: var(--cold-blue)">CALIBRACIÓN DE SISTEMA</h2>
-    <p>Detectando frecuencias QR...</p>
-    <div id="setup-progress" style="font-size: 6rem; color: white; margin: 20px 0;">0/3</div>
-    <p style="font-size: 10px; opacity: 0.5;">Escanee códigos de consola para sincronizar</p>
-</div>
-
-<div id="reg-screen" class="modal">
-    <h2 id="reg-title">REGISTRO</h2>
-    <div id="reg-step-1">
-        <p>IDENTIFICACIÓN OPERADOR:</p>
-        <input type="text" id="reg-name" placeholder="NOMBRE..." autocomplete="off">
-        <button onclick="saveRegName()" style="width: 100%; font-size: 1.2rem; padding: 20px;">VALIDAR</button>
-    </div>
-    <div id="reg-step-2" style="display:none;">
-        <p style="color: var(--cold-blue); font-size: 1.3rem;">ESCANEA TU CARTA</p>
-        <div style="border: 1px dashed var(--cold-blue); padding: 30px; margin: 20px 0;">
-            <p id="reg-char-name" style="color: white; font-size: 0.8rem;">ESPERANDO QR...</p>
-        </div>
-        <p style="font-size: 11px; opacity: 0.6;">VINCULACIÓN BIOMÉTRICA ÚNICA</p>
-    </div>
+    <h2 style="color: var(--cold-blue)">CALIBRACIÓN</h2>
+    <div id="setup-progress" style="font-size: 6rem; color: white;">0/3</div>
 </div>
 
 <div id="hub-screen" class="modal">
     <button onclick="resetGamePrompt()" style="position: absolute; top: 15px; color: var(--danger-red); border: 1px solid var(--danger-red); font-size: 9px; padding: 8px;">REINICIAR NÚCLEO</button>
-    <h2 style="color: #00ffff; margin-top: 40px;">PANEL DE ACCESO</h2>
-    <p>SELECCIONE PERFIL ACTIVO:</p>
+    <h2 style="color: #00ffff; margin-top: 40px;">ACCESO</h2>
     <button id="btn-hub-pA" onclick="loginPlayer('pA')" style="width: 280px; padding: 25px; margin-bottom: 15px;">---</button>
     <button id="btn-hub-pB" onclick="loginPlayer('pB')" style="width: 280px; padding: 25px;">---</button>
 </div>
 
 <div id="ui-wrapper">
     <div id="header">
-        <button onclick="logout()" style="color: var(--cold-blue); border-color: var(--cold-blue);">LOGOUT</button>
-        <span id="player-display">---</span>
-        <button onclick="openBypass()" style="color: var(--cold-blue); border-color: var(--cold-blue);">BYPASS</button>
+        <button onclick="logout()" style="width: 80px; font-size: 8px; color: var(--cold-blue); border-color: var(--cold-blue);">LOGOUT</button>
+        <span id="player-display" style="font-size: 12px;">---</span>
+        <button onclick="openBypass()" style="width: 80px; font-size: 8px; color: var(--cold-blue); border-color: var(--cold-blue);">BYPASS</button>
     </div>
     
     <div id="camera-container">
@@ -90,23 +75,46 @@
         <canvas id="canvas" style="display:none"></canvas>
         <div id="res-modal" class="modal">
             <h1 id="res-perc" style="font-size: 5rem; color: white;">0%</h1>
-            <p id="res-msg">COINCIDENCIA</p>
-            <button onclick="closeModal('res-modal')" style="width: 180px; padding: 15px;">CERRAR</button>
+            <p id="res-msg">ANALIZANDO...</p>
+            <button onclick="closeModal('res-modal')" style="width: 180px; padding: 15px; margin-top: 20px;">CERRAR</button>
         </div>
     </div>
 
-    <div id="terminal">> TERMINAL EXODUS LISTA</div>
+    <div id="terminal">> NÚCLEO EXODUS CONECTADO</div>
 
     <div class="btn-group">
         <button id="btn-bio" onclick="playVideo()">BIO-LOG ANIMADO</button>
-        <button onclick="runScan('NEURONAL')">SCAN NEURONAL</button>
-        <button onclick="runScan('EM')">SCAN ELECTROMAG.</button>
-        <button onclick="runScan('MUTAGENO')">SCAN MUTÁGENO</button>
+        
+        <div class="scan-btn-container">
+            <button id="btn-scan-NEURONAL" onclick="runScan('NEURONAL')">SCAN NEURONAL</button>
+            <div id="val-NEURONAL" class="last-res">--%</div>
+        </div>
+        
+        <div class="scan-btn-container">
+            <button id="btn-scan-EM" onclick="runScan('EM')">SCAN ELECTROMAG.</button>
+            <div id="val-EM" class="last-res">--%</div>
+        </div>
+        
+        <div class="scan-btn-container">
+            <button id="btn-scan-MUTAGENO" onclick="runScan('MUTAGENO')">SCAN MUTÁGENO</button>
+            <div id="val-MUTAGENO" class="last-res">--%</div>
+        </div>
+    </div>
+</div>
+
+<div id="reg-screen" class="modal">
+    <h2 id="reg-title">REGISTRO</h2>
+    <div id="reg-step-1">
+        <input type="text" id="reg-name" placeholder="NOMBRE..." autocomplete="off">
+        <button onclick="saveRegName()" style="width: 100%; font-size: 1.2rem; padding: 20px;">VALIDAR</button>
+    </div>
+    <div id="reg-step-2" style="display:none;">
+        <p style="color: var(--cold-blue);">ESCANEA TU CARTA</p>
     </div>
 </div>
 
 <div id="bypass-screen" class="modal">
-    <h2 style="color: var(--cold-blue)">HACK TERMINAL</h2>
+    <h2 style="color: var(--cold-blue)">HACK</h2>
     <div id="mm-display" style="font-size: 2.5rem; border: 1px solid var(--cold-blue); padding: 15px; margin: 10px;">---</div>
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
         <button onclick="pressNum('1')">1</button><button onclick="pressNum('2')">2</button><button onclick="pressNum('3')">3</button>
@@ -122,13 +130,17 @@
     let currentRegPlayer = 'pA';
     let activePlayer = null;
     let consoles = [];
-    const scanSound = new Audio('media/audio/scan.mp3');
+    
+    // Audios
+    const sndScan = new Audio('media/audio/scan.mp3');
+    const sndSuccess = new Audio('media/audio/scan_match.mp3');
+    const sndFail = new Audio('media/audio/scan_fail.mp3');
 
-    // Inicialización de datos
-    let game = JSON.parse(localStorage.getItem('exodus_save')) || {
+    // Estructura de datos actualizada
+    let game = JSON.parse(localStorage.getItem('exodus_v9')) || {
         pass: [],
-        pA: { name: "", char: "", role: "", scanned: false },
-        pB: { name: "", char: "", role: "", scanned: false }
+        pA: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }},
+        pB: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }}
     };
 
     const v = document.getElementById('video');
@@ -139,7 +151,6 @@
         v.srcObject = s; v.play(); requestAnimationFrame(tick); 
     });
 
-    // Lógica de inicio: ¿Mostramos botón reanudar?
     if(game.pA.name && game.pB.name) {
         document.getElementById('btn-resume').style.display = 'block';
         document.getElementById('btn-start-mision').innerText = "NUEVA MISIÓN";
@@ -160,14 +171,12 @@
             let scannedChar = data.replace("acheron_char_", "");
             if (data.includes("char_") && scannedChar !== game[activePlayer].char) {
                 isProcessing = true;
-                alert("⚠️ ERROR DE IDENTIDAD: Esta carta no pertenece a " + game[activePlayer].name);
+                alert("⚠️ ERROR: IDENTIDAD NO CORRESPONDE.");
                 setTimeout(() => isProcessing = false, 3000);
             }
             return; 
         }
-
         isProcessing = true; 
-        
         if (game.pass.length < 3) {
             if (data.includes("cons_") && !consoles.includes(data)) {
                 consoles.push(data);
@@ -181,9 +190,7 @@
         }
         else if (document.getElementById('reg-step-2').style.display === 'block' && data.includes("char_")) {
             let scannedChar = data.replace("acheron_char_", "");
-            let other = (currentRegPlayer === 'pA') ? 'pB' : 'pA';
-            
-            if (game[other].char === scannedChar) {
+            if (game.pA.char === scannedChar || game.pB.char === scannedChar) {
                 alert("ERROR: PERSONAJE YA ASIGNADO.");
             } else {
                 game[currentRegPlayer].char = scannedChar;
@@ -200,52 +207,60 @@
         setTimeout(() => { isProcessing = false; }, 2000);
     }
 
-    function startNewGame() {
-        // Solo confirmar si realmente hay datos previos
-        if(game.pA.name) {
-            if(!confirm("¿BORRAR DATOS Y REINICIAR NÚCLEO?")) return;
-        }
+    function runScan(mode) {
+        let pData = game[activePlayer].scans[mode];
+        if (pData.blocked) return;
+
+        sndScan.play();
+        const line = document.getElementById('scan-line');
+        line.style.display = 'block';
+        line.style.animation = 'moveScan 1.5s linear forwards';
         
-        // Limpieza profunda de memoria
-        localStorage.removeItem('exodus_save');
-        game = { pass: [], pA: { name: "", char: "", role: "", scanned: false }, pB: { name: "", char: "", role: "", scanned: false } };
-        consoles = [];
-        currentRegPlayer = 'pA';
-        
-        // Reset Visual
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('setup-screen').style.display = 'flex';
-        document.getElementById('btn-resume').style.display = 'none';
-        document.getElementById('btn-start-mision').innerText = "INICIAR MISIÓN";
+        setTimeout(() => {
+            line.style.display = 'none';
+            pData.count++;
+            
+            // LÓGICA DE PORCENTAJES PEDRO V9.0
+            let isCorrectType = (mode === 'NEURONAL' && game[activePlayer].role === 'HUMANO') || 
+                               (mode === 'EM' && game[activePlayer].role === 'CYBORG') || 
+                               (mode === 'MUTAGENO' && game[activePlayer].role === 'ADAPTOID');
+            
+            let result = 0;
+            if (pData.count === 1) {
+                if (isCorrectType) {
+                    result = Math.floor(Math.random() * 15) + 70; // 70-85% (Duda positiva)
+                } else {
+                    result = Math.floor(Math.random() * 15); // 0-15% (No rotundo)
+                    pData.blocked = true;
+                    sndFail.play();
+                }
+            } else if (pData.count === 2) {
+                if (isCorrectType) {
+                    result = 100; // ¡Éxito!
+                    sndSuccess.play();
+                    document.getElementById('res-msg').innerText = "VÍNCULO CONFIRMADO";
+                } else {
+                    result = Math.floor(Math.random() * 10); // Era una falsa alarma
+                    sndFail.play();
+                }
+                pData.blocked = true;
+            }
+
+            pData.val = result;
+            updateScanUI();
+            
+            document.getElementById('res-perc').innerText = result + "%";
+            document.getElementById('res-modal').style.display = 'flex';
+            save();
+        }, 1500);
     }
 
-    function resetGamePrompt() { startNewGame(); }
-
-    function showRegistration() {
-        document.getElementById('reg-screen').style.display = 'flex';
-        document.getElementById('reg-title').innerText = "VINCULACIÓN: JUGADOR " + (currentRegPlayer === 'pA' ? "A" : "B");
-        document.getElementById('reg-step-1').style.display = 'block';
-        document.getElementById('reg-step-2').style.display = 'none';
-        document.getElementById('reg-name').value = "";
-    }
-
-    function saveRegName() {
-        let n = document.getElementById('reg-name').value;
-        if(n) {
-            game[currentRegPlayer].name = n.toUpperCase();
-            document.getElementById('reg-step-1').style.display = 'none';
-            document.getElementById('reg-step-2').style.display = 'block';
-            isProcessing = false;
-        }
-    }
-
-    function goToHub() {
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('reg-screen').style.display = 'none';
-        document.getElementById('ui-wrapper').style.display = 'none';
-        document.getElementById('hub-screen').style.display = 'flex';
-        document.getElementById('btn-hub-pA').innerText = game.pA.name || "---";
-        document.getElementById('btn-hub-pB').innerText = game.pB.name || "---";
+    function updateScanUI() {
+        ['NEURONAL', 'EM', 'MUTAGENO'].forEach(m => {
+            let data = game[activePlayer].scans[m];
+            document.getElementById('val-' + m).innerText = data.val !== null ? data.val + "%" : "--%";
+            document.getElementById('btn-scan-' + m).disabled = data.blocked;
+        });
     }
 
     function loginPlayer(p) {
@@ -256,37 +271,18 @@
         document.getElementById('bg-char').src = `media/images/${game[p].char}.jpg`;
         document.getElementById('bg-char').style.opacity = "0.2";
         document.getElementById('btn-bio').style.display = 'block';
-        game[p].scanned = false;
+        updateScanUI();
     }
 
-    function runScan(mode) {
-        if (game[activePlayer].scanned) { alert("SISTEMA BLOQUEADO HASTA SIGUIENTE SESIÓN."); return; }
-        scanSound.currentTime = 0; scanSound.play();
-        const line = document.getElementById('scan-line');
-        line.style.display = 'block';
-        line.style.animation = 'moveScan 1.5s linear forwards';
-        setTimeout(() => {
-            line.style.display = 'none';
-            let match = (mode === 'NEURONAL' && game[activePlayer].role === 'HUMANO') || (mode === 'EM' && game[activePlayer].role === 'CYBORG') || (mode === 'MUTAGENO' && game[activePlayer].role === 'ADAPTOID');
-            let p = match ? Math.floor(Math.random() * 21) + 75 : Math.floor(Math.random() * 16);
-            document.getElementById('res-perc').innerText = p + "%";
-            document.getElementById('res-modal').style.display = 'flex';
-            game[activePlayer].scanned = true;
-        }, 1500);
-    }
-
-    function logout() { 
-        activePlayer = null; 
-        document.getElementById('bg-char').style.opacity = "0";
-        setTimeout(() => { document.getElementById('bg-char').src = ""; }, 1000);
-        goToHub(); 
-    }
-
+    function logout() { activePlayer = null; document.getElementById('bg-char').style.opacity = "0"; goToHub(); }
+    function startNewGame() { if(game.pA.name && !confirm("¿BORRAR TODO?")) return; localStorage.removeItem('exodus_v9'); location.reload(); }
+    function goToHub() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); document.getElementById('hub-screen').style.display='flex'; }
+    function save() { localStorage.setItem('exodus_v9', JSON.stringify(game)); }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; document.getElementById('res-msg').innerText = "ANALIZANDO..."; }
     function playVideo() { window.open(`media/videos/${game[activePlayer].char}.mp4`, '_blank'); }
     function openBypass() { document.getElementById('bypass-screen').style.display = 'flex'; }
-    function save() { localStorage.setItem('exodus_save', JSON.stringify(game)); }
-    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-
+    
+    // Bypass logic (se mantiene igual)
     let guess = "";
     function pressNum(n) { if(guess.length < 3) { guess += n; document.getElementById('mm-display').innerText = guess; } }
     function clearNum() { guess = ""; document.getElementById('mm-display').innerText = "---"; }
@@ -296,8 +292,8 @@
         let sC = [...s], gC = [...g];
         for(let i=0; i<3; i++) { if(gC[i] === sC[i]) { pos++; sC[i] = null; gC[i] = "X"; } }
         for(let i=0; i<3; i++) { if(gC[i] !== "X" && sC.includes(gC[i])) { num++; sC[sC.indexOf(gC[i])] = null; } }
-        alert(`RESULTADO: ${pos} BIEN / ${num} EN OTRA POSICIÓN`);
-        guess = ""; document.getElementById('mm-display').innerText = "---";
+        alert(`POS: ${pos} | NUM: ${num}`);
+        clearNum();
     }
 </script>
 </body>
