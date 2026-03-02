@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EXODUS - METASCANNER V9.1</title>
+    <title>EXODUS - METASCANNER V9.2</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
@@ -33,7 +33,6 @@
         button:disabled { opacity: 0.3; border-color: #333; color: #555; cursor: not-allowed; }
         .btn-main { padding: 20px 40px; font-size: 1.1rem; border-color: #00ffff; color: #00ffff; margin: 10px 0; width: 80%; }
         
-        #terminal { height: 35px; padding: 5px 15px; font-size: 10px; background: #050a05; border-top: 1px solid #1a331a; color: #666; display: flex; align-items: center; }
         input { background: black; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px; text-align: center; font-size: 1.2rem; width: 85%; margin: 10px 0; }
     </style>
 </head>
@@ -44,29 +43,25 @@
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">EXODUS CORE</h1>
-    <p>METASCANNER V9.1</p>
+    <p>METASCANNER V9.2</p>
     <button onclick="startNewGame()" class="btn-main" id="btn-start-mision">INICIAR MISIÓN</button>
     <button id="btn-resume" onclick="goToHub()" style="display:none; color: var(--cold-blue); border-color: var(--cold-blue); padding: 15px 30px; margin-top: 10px; width: 80%;">REANUDAR MISIÓN</button>
 </div>
 
 <div id="setup-screen" class="modal">
     <h2 style="color: var(--cold-blue)">CALIBRACIÓN</h2>
-    <p>Detectando frecuencias QR...</p>
     <div id="setup-progress" style="font-size: 6rem; color: white;">0/3</div>
 </div>
 
 <div id="reg-screen" class="modal">
     <h2 id="reg-title">REGISTRO</h2>
     <div id="reg-step-1">
-        <p>NOMBRE OPERADOR:</p>
-        <input type="text" id="reg-name" placeholder="..." autocomplete="off">
-        <button onclick="saveRegName()" style="width: 100%; font-size: 1.2rem; padding: 20px;">VINCULAR</button>
+        <input type="text" id="reg-name" placeholder="NOMBRE..." autocomplete="off">
+        <button onclick="saveRegName()" style="width: 100%; font-size: 1.2rem; padding: 20px; margin-top:10px;">VINCULAR</button>
     </div>
     <div id="reg-step-2" style="display:none;">
-        <p style="color: var(--cold-blue); font-size: 1.3rem;">ESCANEA TU CARTA</p>
-        <div style="border: 1px dashed var(--cold-blue); padding: 30px; margin: 20px 0;">
-            <p style="color: white; font-size: 0.8rem;">ESPERANDO CÓDIGO...</p>
-        </div>
+        <p style="color: var(--cold-blue);">ESCANEA TU CARTA</p>
+        <div style="border: 1px dashed var(--cold-blue); padding: 40px; margin-top: 20px;">QR</div>
     </div>
 </div>
 
@@ -131,6 +126,7 @@
     let currentRegPlayer = 'pA';
     let activePlayer = null;
     let consoles = [];
+    let sessionScanned = false; // Bloqueo de un scan por sesión
     
     const sndScan = new Audio('media/audio/scan.mp3');
     const sndSuccess = new Audio('media/audio/scan_match.mp3');
@@ -166,15 +162,17 @@
     }
 
     function handleQR(data) {
+        // Bloqueo de seguridad: Si intentas escanear algo que NO es tu carta mientras estás logueado
         if (activePlayer) {
             let scannedChar = data.replace("acheron_char_", "");
             if (data.includes("char_") && scannedChar !== game[activePlayer].char) {
                 isProcessing = true;
-                alert("⚠️ ERROR: IDENTIDAD NO CORRESPONDE.");
+                alert("⚠️ ALERTA DE SEGURIDAD: IDENTIDAD NO AUTORIZADA.");
                 setTimeout(() => isProcessing = false, 3000);
             }
             return; 
         }
+
         isProcessing = true; 
         if (game.pass.length < 3) {
             if (data.includes("cons_") && !consoles.includes(data)) {
@@ -187,7 +185,9 @@
                 }
             }
         }
-        else if (document.getElementById('reg-step-2').style.display === 'flex' && data.includes("char_")) {
+        else if (document.getElementById('reg-screen').style.display === 'flex' && 
+                 document.getElementById('reg-step-2').style.display === 'flex' && 
+                 data.includes("char_")) {
             let scannedChar = data.replace("acheron_char_", "");
             if (game.pA.char === scannedChar || game.pB.char === scannedChar) {
                 alert("ERROR: PERSONAJE YA ASIGNADO.");
@@ -206,22 +206,101 @@
         setTimeout(() => { isProcessing = false; }, 2000);
     }
 
+    function runScan(mode) {
+        if (sessionScanned) { alert("SISTEMA BLOQUEADO: Solo un escaneo por sesión de usuario."); return; }
+        
+        let pData = game[activePlayer].scans[mode];
+        if (pData.blocked) return;
+
+        sndScan.play();
+        const line = document.getElementById('scan-line');
+        line.style.display = 'block';
+        line.style.animation = 'moveScan 1.5s linear forwards';
+        
+        setTimeout(() => {
+            line.style.display = 'none';
+            pData.count++;
+            sessionScanned = true; // Bloqueamos el resto de botones para esta entrada
+            
+            let isCorrectType = (mode === 'NEURONAL' && game[activePlayer].role === 'HUMANO') || 
+                               (mode === 'EM' && game[activePlayer].role === 'CYBORG') || 
+                               (mode === 'MUTAGENO' && game[activePlayer].role === 'ADAPTOID');
+            
+            let result = 0;
+            if (pData.count === 1) {
+                if (isCorrectType) {
+                    result = Math.floor(Math.random() * 15) + 70;
+                } else {
+                    result = Math.floor(Math.random() * 15);
+                    pData.blocked = true;
+                    sndFail.play();
+                }
+            } else {
+                if (isCorrectType) {
+                    result = 100;
+                    sndSuccess.play();
+                    document.getElementById('res-msg').innerText = "VÍNCULO CONFIRMADO";
+                } else {
+                    result = Math.floor(Math.random() * 10);
+                    sndFail.play();
+                }
+                pData.blocked = true;
+            }
+
+            pData.val = result;
+            updateScanUI();
+            document.getElementById('res-perc').innerText = result + "%";
+            document.getElementById('res-modal').style.display = 'flex';
+            save();
+        }, 1500);
+    }
+
+    function updateScanUI() {
+        ['NEURONAL', 'EM', 'MUTAGENO'].forEach(m => {
+            let data = game[activePlayer].scans[m];
+            document.getElementById('val-' + m).innerText = data.val !== null ? data.val + "%" : "--%";
+            // Deshabilitar si está bloqueado permanentemente O si ya escaneó en esta sesión
+            document.getElementById('btn-scan-' + m).disabled = data.blocked || sessionScanned;
+        });
+    }
+
+    function goToHub() { 
+        document.querySelectorAll('.modal').forEach(m => m.style.display='none'); 
+        document.getElementById('hub-screen').style.display='flex'; 
+        // Actualizar nombres en los botones del HUB
+        document.getElementById('btn-hub-pA').innerText = game.pA.name || "---";
+        document.getElementById('btn-hub-pB').innerText = game.pB.name || "---";
+    }
+
+    function loginPlayer(p) {
+        activePlayer = p;
+        sessionScanned = false; // Reset de bloqueo de sesión al entrar
+        document.getElementById('hub-screen').style.display = 'none';
+        document.getElementById('ui-wrapper').style.display = 'flex';
+        document.getElementById('player-display').innerText = game[p].name;
+        document.getElementById('bg-char').src = `media/images/${game[p].char}.jpg`;
+        document.getElementById('bg-char').style.opacity = "0.2";
+        document.getElementById('btn-bio').style.display = 'block';
+        updateScanUI();
+    }
+
+    function logout() { 
+        activePlayer = null; 
+        sessionScanned = false;
+        document.getElementById('bg-char').style.opacity = "0"; 
+        goToHub(); 
+    }
+
     function startNewGame() {
         if(game.pA.name && !confirm("¿BORRAR TODO?")) return;
         localStorage.removeItem('exodus_v9');
-        game = { pass: [], pA: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }}, pB: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }} };
-        consoles = [];
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('setup-screen').style.display = 'flex';
-        document.getElementById('setup-progress').innerText = "0/3";
-        isProcessing = false;
+        location.reload();
     }
 
     function resetGamePrompt() { startNewGame(); }
-
     function showRegistration() {
         document.getElementById('reg-screen').style.display = 'flex';
-        document.getElementById('reg-title').innerText = "REGISTRO: JUGADOR " + (currentRegPlayer === 'pA' ? "A" : "B");
+        document.getElementById('reg-title').innerText = "REGISTRO: " + (currentRegPlayer === 'pA' ? "JUGADOR A" : "JUGADOR B");
         document.getElementById('reg-step-1').style.display = 'block';
         document.getElementById('reg-step-2').style.display = 'none';
         document.getElementById('reg-name').value = "";
@@ -237,60 +316,12 @@
         }
     }
 
-    function runScan(mode) {
-        let pData = game[activePlayer].scans[mode];
-        if (pData.blocked) return;
-        sndScan.play();
-        const line = document.getElementById('scan-line');
-        line.style.display = 'block';
-        line.style.animation = 'moveScan 1.5s linear forwards';
-        setTimeout(() => {
-            line.style.display = 'none';
-            pData.count++;
-            let isCorrectType = (mode === 'NEURONAL' && game[activePlayer].role === 'HUMANO') || (mode === 'EM' && game[activePlayer].role === 'CYBORG') || (mode === 'MUTAGENO' && game[activePlayer].role === 'ADAPTOID');
-            let result = 0;
-            if (pData.count === 1) {
-                if (isCorrectType) { result = Math.floor(Math.random() * 15) + 70; } 
-                else { result = Math.floor(Math.random() * 15); pData.blocked = true; sndFail.play(); }
-            } else {
-                if (isCorrectType) { result = 100; sndSuccess.play(); document.getElementById('res-msg').innerText = "VÍNCULO CONFIRMADO"; } 
-                else { result = Math.floor(Math.random() * 10); sndFail.play(); }
-                pData.blocked = true;
-            }
-            pData.val = result;
-            updateScanUI();
-            document.getElementById('res-perc').innerText = result + "%";
-            document.getElementById('res-modal').style.display = 'flex';
-            save();
-        }, 1500);
-    }
-
-    function updateScanUI() {
-        ['NEURONAL', 'EM', 'MUTAGENO'].forEach(m => {
-            let data = game[activePlayer].scans[m];
-            document.getElementById('val-' + m).innerText = data.val !== null ? data.val + "%" : "--%";
-            document.getElementById('btn-scan-' + m).disabled = data.blocked;
-        });
-    }
-
-    function loginPlayer(p) {
-        activePlayer = p;
-        document.getElementById('hub-screen').style.display = 'none';
-        document.getElementById('ui-wrapper').style.display = 'flex';
-        document.getElementById('player-display').innerText = game[p].name;
-        document.getElementById('bg-char').src = `media/images/${game[p].char}.jpg`;
-        document.getElementById('bg-char').style.opacity = "0.2";
-        document.getElementById('btn-bio').style.display = 'block';
-        updateScanUI();
-    }
-
-    function logout() { activePlayer = null; document.getElementById('bg-char').style.opacity = "0"; goToHub(); }
-    function goToHub() { document.querySelectorAll('.modal').forEach(m => m.style.display='none'); document.getElementById('hub-screen').style.display='flex'; }
     function save() { localStorage.setItem('exodus_v9', JSON.stringify(game)); }
     function closeModal(id) { document.getElementById(id).style.display = 'none'; document.getElementById('res-msg').innerText = "ANALIZANDO..."; }
     function playVideo() { window.open(`media/videos/${game[activePlayer].char}.mp4`, '_blank'); }
     function openBypass() { document.getElementById('bypass-screen').style.display = 'flex'; }
     
+    // Bypass Logic
     let guess = "";
     function pressNum(n) { if(guess.length < 3) { guess += n; document.getElementById('mm-display').innerText = guess; } }
     function clearNum() { guess = ""; document.getElementById('mm-display').innerText = "---"; }
