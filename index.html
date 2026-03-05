@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EXODUS - METASCANNER V9.7</title>
+    <title>EXODUS - METASCANNER V9.8</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
@@ -25,6 +25,7 @@
         button:disabled { opacity: 0.3; border-color: #333; color: #555; }
         .btn-main { padding: 20px 40px; font-size: 1.1rem; border-color: #00ffff; color: #00ffff; margin: 10px 0; width: 80%; }
         input { background: black; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px; text-align: center; font-size: 1.2rem; width: 85%; margin: 10px 0; }
+        .scan-box { border: 2px solid var(--cold-blue); box-shadow: 0 0 15px var(--cold-blue); }
     </style>
 </head>
 <body>
@@ -34,7 +35,7 @@
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">EXODUS CORE</h1>
-    <p>METASCANNER V9.7 [PATCH]</p>
+    <p>METASCANNER V9.8 [FINAL SPRINT]</p>
     <button onclick="startNewGame()" class="btn-main">INICIAR MISIÓN</button>
     <button id="btn-resume" onclick="goToHub()" style="display:none; color: var(--cold-blue); border-color: var(--cold-blue); padding: 15px; margin-top: 10px; width: 80%;">REANUDAR MISIÓN</button>
 </div>
@@ -43,7 +44,7 @@
     <h2 style="color: var(--cold-blue)">CALIBRACIÓN</h2>
     <div id="setup-progress" style="font-size: 6rem; color: white;">0/3</div>
     <div style="border: 1px solid var(--crt-green); width: 180px; height: 120px; overflow: hidden; margin: 10px;">
-        <video id="setup-video" playsinline></video>
+        <video id="setup-video" playsinline muted></video>
     </div>
     <p>Escanea las consolas</p>
 </div>
@@ -56,22 +57,24 @@
     </div>
     <div id="reg-step-2" style="display:none;">
         <p style="color: var(--cold-blue);">ESCANEA TU CARTA</p>
-        <div style="border: 2px dashed var(--cold-blue); padding: 40px; margin-top: 20px;">VINCULANDO...</div>
+        <div class="scan-box" style="width: 150px; height: 150px; margin: 20px auto; overflow: hidden;">
+             <video id="reg-video" playsinline muted style="width:100%; height:100%; object-fit:cover;"></video>
+        </div>
     </div>
 </div>
 
 <div id="hub-screen" class="modal">
-    <button onclick="confirmRestart()" style="position: absolute; top: 15px; color: var(--danger-red); border: 1px solid var(--danger-red); font-size: 8px; padding: 5px;">REINICIAR</button>
+    <button onclick="confirmRestart()" style="position: absolute; top: 15px; color: var(--danger-red); border: 1px solid var(--danger-red); font-size: 8px; padding: 5px;">BORRAR MEMORIA</button>
     <h2 style="color: #00ffff;">ACCESO</h2>
     <button id="btn-hub-pA" onclick="startLogin('pA')" style="width: 280px; padding: 25px; margin-bottom: 15px;">---</button>
     <button id="btn-hub-pB" onclick="startLogin('pB')" style="width: 280px; padding: 25px;">---</button>
 </div>
 
 <div id="login-scanner" class="modal">
-    <h2 style="color: var(--cold-blue)">VERIFICACIÓN</h2>
+    <h2 id="login-title-txt" style="color: var(--cold-blue)">VERIFICACIÓN</h2>
     <p id="login-msg">ESCANEA CARTA</p>
-    <div style="border: 2px solid var(--cold-blue); width: 220px; height: 220px; margin: 15px;">
-        <video id="login-video" playsinline></video>
+    <div class="scan-box" style="width: 220px; height: 220px; margin: 15px; overflow: hidden;">
+        <video id="login-video" playsinline muted></video>
     </div>
     <button onclick="goToHub()" style="width: 150px; border-color: gray; color: gray;">VOLVER</button>
 </div>
@@ -84,7 +87,7 @@
     </div>
     <div id="camera-container">
         <div id="scan-line"></div>
-        <video id="video" playsinline></video>
+        <video id="video" playsinline muted></video>
         <canvas id="canvas" style="display:none"></canvas>
         <div id="res-modal" class="modal">
             <h1 id="res-perc" style="font-size: 5rem; color: white;">0%</h1>
@@ -141,15 +144,15 @@
 
     const v = document.getElementById('video');
     const sv = document.getElementById('setup-video');
+    const rv = document.getElementById('reg-video');
     const lv = document.getElementById('login-video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
-    // Cargar cámara pero no bloquear nada
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => { 
-        v.srcObject = s; sv.srcObject = s; lv.srcObject = s; v.play(); sv.play(); lv.play(); 
+        [v, sv, rv, lv].forEach(el => { el.srcObject = s; el.play(); });
         requestAnimationFrame(tick); 
-    }).catch(e => console.log("Cámara en espera..."));
+    });
 
     if(game.pA.name && game.pB.name) {
         document.getElementById('btn-resume').style.display = 'block';
@@ -160,45 +163,59 @@
             canvas.height = v.videoHeight; canvas.width = v.videoWidth;
             ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
             const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
-            if (code && code.data.toLowerCase().includes("acheron_")) handleQR(code.data.toLowerCase());
+            if (code) handleQR(code.data.toLowerCase());
         }
         requestAnimationFrame(tick);
     }
 
     function handleQR(data) {
-        isProcessing = true;
-        // CALIBRACION
+        // PRIORIDAD 1: LOGIN
+        if (loginTarget) {
+            let targetChar = game[loginTarget].char.toLowerCase();
+            if (data.includes(targetChar)) {
+                isProcessing = true;
+                const p = loginTarget; loginTarget = null;
+                document.getElementById('login-scanner').style.display = 'none';
+                loginPlayer(p);
+                setTimeout(() => isProcessing = false, 2000);
+                return;
+            }
+        }
+        
+        if (isProcessing) return;
+
+        // PRIORIDAD 2: CALIBRACION
         if (game.pass.length < 3) {
             if (data.includes("cons_") && !consoles.includes(data)) {
+                isProcessing = true;
                 consoles.push(data);
                 document.getElementById('setup-progress').innerText = consoles.length + "/3";
                 if (consoles.length === 3) {
                     game.pass = consoles.map(c => c.split('_').pop());
                     save(); setTimeout(showRegistration, 500);
                 }
+                setTimeout(() => isProcessing = false, 1000);
             }
         }
-        // REGISTRO
+        // PRIORIDAD 3: REGISTRO
         else if (document.getElementById('reg-step-2').style.display === 'flex') {
-            let scChar = data.split('char_')[1];
-            if (data.includes("char_") && game.pA.char !== scChar) {
-                game[currentRegPlayer].char = scChar;
-                game[currentRegPlayer].role = ['HUMANO', 'CYBORG', 'ADAPTOID'][Math.floor(Math.random()*3)];
-                save();
-                if (currentRegPlayer === 'pA') { currentRegPlayer = 'pB'; showRegistration(); } 
-                else { goToHub(); }
+            if (data.includes("char_")) {
+                isProcessing = true;
+                let scChar = data.split('char_')[1];
+                if (game.pA.char !== scChar) {
+                    game[currentRegPlayer].char = scChar;
+                    game[currentRegPlayer].role = ['HUMANO', 'CYBORG', 'ADAPTOID'][Math.floor(Math.random()*3)];
+                    save();
+                    if (currentRegPlayer === 'pA') { 
+                        currentRegPlayer = 'pB'; 
+                        showRegistration(); 
+                    } else { 
+                        goToHub(); 
+                    }
+                }
+                setTimeout(() => isProcessing = false, 1500);
             }
         }
-        // LOGIN
-        else if (loginTarget) {
-            let scChar = data.split('char_')[1];
-            if (scChar === game[loginTarget].char) {
-                const p = loginTarget; loginTarget = null;
-                document.getElementById('login-scanner').style.display = 'none';
-                loginPlayer(p);
-            }
-        }
-        setTimeout(() => isProcessing = false, 1500);
     }
 
     function startNewGame() {
@@ -226,12 +243,13 @@
     }
 
     function goToHub() {
-        loginTarget = null;
+        loginTarget = null; isProcessing = false;
         document.querySelectorAll('.modal').forEach(m => m.style.display='none');
         document.getElementById('ui-wrapper').style.display = 'none';
         document.getElementById('hub-screen').style.display = 'flex';
         document.getElementById('btn-hub-pA').innerText = game.pA.name || "---";
         document.getElementById('btn-hub-pB').innerText = game.pB.name || "---";
+        document.getElementById('bg-char').style.opacity = "0";
     }
 
     function startLogin(p) {
