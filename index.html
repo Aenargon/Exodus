@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EXODUS - METASCANNER V9.6</title>
+    <title>EXODUS - METASCANNER V9.7</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
         body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; }
         .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5000; }
         #bg-char { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0; z-index: -1; filter: grayscale(100%); transition: opacity 1s; }
-        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 5, 0, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 5, 0, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
         #ui-wrapper { display: none; flex-direction: column; height: 100vh; position: relative; }
         #header { height: 50px; border-bottom: 1px solid var(--crt-green); padding: 0 15px; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
         #camera-container { position: relative; height: 40vh; overflow: hidden; background: #000; border-bottom: 2px solid #111; display: flex; align-items: center; justify-content: center; }
-        #video { width: 100%; height: 100%; object-fit: cover; }
+        #video, #setup-video, #login-video { width: 100%; height: 100%; object-fit: cover; background: #000; }
         #scan-line { position: absolute; width: 100%; height: 5px; background: var(--crt-green); top: -10px; display: none; box-shadow: 0 0 20px var(--crt-green); z-index: 1000; }
         @keyframes moveScan { 0% { top: 0%; } 100% { top: 100%; } }
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; background: #000; flex-grow: 1; align-content: start; }
@@ -34,7 +34,7 @@
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">EXODUS CORE</h1>
-    <p>METASCANNER V9.6 [FINAL]</p>
+    <p>METASCANNER V9.7 [PATCH]</p>
     <button onclick="startNewGame()" class="btn-main">INICIAR MISIÓN</button>
     <button id="btn-resume" onclick="goToHub()" style="display:none; color: var(--cold-blue); border-color: var(--cold-blue); padding: 15px; margin-top: 10px; width: 80%;">REANUDAR MISIÓN</button>
 </div>
@@ -42,10 +42,10 @@
 <div id="setup-screen" class="modal">
     <h2 style="color: var(--cold-blue)">CALIBRACIÓN</h2>
     <div id="setup-progress" style="font-size: 6rem; color: white;">0/3</div>
-    <div style="border: 1px solid var(--crt-green); width: 150px; height: 100px; overflow: hidden; margin-bottom: 10px;">
-        <video id="setup-video" playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+    <div style="border: 1px solid var(--crt-green); width: 180px; height: 120px; overflow: hidden; margin: 10px;">
+        <video id="setup-video" playsinline></video>
     </div>
-    <p>Escanea 3 consolas</p>
+    <p>Escanea las consolas</p>
 </div>
 
 <div id="reg-screen" class="modal">
@@ -56,22 +56,22 @@
     </div>
     <div id="reg-step-2" style="display:none;">
         <p style="color: var(--cold-blue);">ESCANEA TU CARTA</p>
-        <div style="border: 2px dashed var(--cold-blue); padding: 40px; margin-top: 20px; color: white;">BUSCANDO QR...</div>
+        <div style="border: 2px dashed var(--cold-blue); padding: 40px; margin-top: 20px;">VINCULANDO...</div>
     </div>
 </div>
 
 <div id="hub-screen" class="modal">
-    <button onclick="confirmRestart()" style="position: absolute; top: 15px; color: var(--danger-red); border: 1px solid var(--danger-red); font-size: 8px; padding: 5px;">BORRAR DATOS</button>
+    <button onclick="confirmRestart()" style="position: absolute; top: 15px; color: var(--danger-red); border: 1px solid var(--danger-red); font-size: 8px; padding: 5px;">REINICIAR</button>
     <h2 style="color: #00ffff;">ACCESO</h2>
     <button id="btn-hub-pA" onclick="startLogin('pA')" style="width: 280px; padding: 25px; margin-bottom: 15px;">---</button>
     <button id="btn-hub-pB" onclick="startLogin('pB')" style="width: 280px; padding: 25px;">---</button>
 </div>
 
 <div id="login-scanner" class="modal">
-    <h2 id="login-title" style="color: var(--cold-blue)">VERIFICACIÓN</h2>
-    <p id="login-msg">ESCANEA TU CARTA</p>
-    <div style="border: 2px solid var(--cold-blue); width: 200px; height: 200px; margin: 20px; position: relative;">
-        <video id="login-video" playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+    <h2 style="color: var(--cold-blue)">VERIFICACIÓN</h2>
+    <p id="login-msg">ESCANEA CARTA</p>
+    <div style="border: 2px solid var(--cold-blue); width: 220px; height: 220px; margin: 15px;">
+        <video id="login-video" playsinline></video>
     </div>
     <button onclick="goToHub()" style="width: 150px; border-color: gray; color: gray;">VOLVER</button>
 </div>
@@ -110,7 +110,6 @@
 </div>
 
 <div id="bypass-screen" class="modal">
-    <h2 style="color: var(--cold-blue)">HACK</h2>
     <div id="mm-display" style="font-size: 2.5rem; border: 1px solid var(--cold-blue); padding: 15px; margin: 10px;">---</div>
     <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
         <button onclick="pressNum('1')">1</button><button onclick="pressNum('2')">2</button><button onclick="pressNum('3')">3</button>
@@ -118,7 +117,7 @@
         <button onclick="pressNum('7')">7</button><button onclick="pressNum('8')">8</button><button onclick="pressNum('9')">9</button>
         <button onclick="clearNum()" style="color: var(--danger-red);">X</button><button onclick="pressNum('0')">0</button><button onclick="checkBypass()" style="color: #00ff00;">OK</button>
     </div>
-    <button onclick="closeModal('bypass-screen')" style="margin-top: 15px;">CANCELAR</button>
+    <button onclick="closeModal('bypass-screen')" style="margin-top: 15px;">SALIR</button>
 </div>
 
 <script>
@@ -146,10 +145,11 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
 
+    // Cargar cámara pero no bloquear nada
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }).then(s => { 
         v.srcObject = s; sv.srcObject = s; lv.srcObject = s; v.play(); sv.play(); lv.play(); 
         requestAnimationFrame(tick); 
-    });
+    }).catch(e => console.log("Cámara en espera..."));
 
     if(game.pA.name && game.pB.name) {
         document.getElementById('btn-resume').style.display = 'block';
@@ -167,49 +167,49 @@
 
     function handleQR(data) {
         isProcessing = true;
-        // 1. CALIBRACION
+        // CALIBRACION
         if (game.pass.length < 3) {
             if (data.includes("cons_") && !consoles.includes(data)) {
                 consoles.push(data);
                 document.getElementById('setup-progress').innerText = consoles.length + "/3";
                 if (consoles.length === 3) {
                     game.pass = consoles.map(c => c.split('_').pop());
-                    save(); setTimeout(showRegistration, 800);
+                    save(); setTimeout(showRegistration, 500);
                 }
             }
         }
-        // 2. REGISTRO
+        // REGISTRO
         else if (document.getElementById('reg-step-2').style.display === 'flex') {
             let scChar = data.split('char_')[1];
-            if (data.includes("char_")) {
-                if (game.pA.char === scChar) { alert("PERSONAJE YA ASIGNADO"); }
-                else {
-                    game[currentRegPlayer].char = scChar;
-                    game[currentRegPlayer].role = ['HUMANO', 'CYBORG', 'ADAPTOID'][Math.floor(Math.random()*3)];
-                    save();
-                    if (currentRegPlayer === 'pA') { currentRegPlayer = 'pB'; showRegistration(); } 
-                    else { goToHub(); }
-                }
+            if (data.includes("char_") && game.pA.char !== scChar) {
+                game[currentRegPlayer].char = scChar;
+                game[currentRegPlayer].role = ['HUMANO', 'CYBORG', 'ADAPTOID'][Math.floor(Math.random()*3)];
+                save();
+                if (currentRegPlayer === 'pA') { currentRegPlayer = 'pB'; showRegistration(); } 
+                else { goToHub(); }
             }
         }
-        // 3. LOGIN (ESTO ERA LO QUE FALLABA)
+        // LOGIN
         else if (loginTarget) {
             let scChar = data.split('char_')[1];
             if (scChar === game[loginTarget].char) {
                 const p = loginTarget; loginTarget = null;
                 document.getElementById('login-scanner').style.display = 'none';
                 loginPlayer(p);
-            } else { alert("CARTA INCORRECTA PARA ESTE OPERADOR"); }
+            }
         }
         setTimeout(() => isProcessing = false, 1500);
     }
 
     function startNewGame() {
         localStorage.removeItem('exodus_v9');
-        location.reload(); // Reinicio total real
+        game = { pass: [], pA: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }}, pB: { name: "", char: "", role: "", scans: { NEURONAL: {count:0, val:null, blocked:false}, EM: {count:0, val:null, blocked:false}, MUTAGENO: {count:0, val:null, blocked:false} }} };
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('setup-screen').style.display = 'flex';
+        isProcessing = false;
     }
 
-    function confirmRestart() { if(confirm("¿BORRAR TODO Y REINICIAR?")) startNewGame(); }
+    function confirmRestart() { if(confirm("REINICIAR SISTEMA?")) { localStorage.removeItem('exodus_v9'); location.reload(); } }
 
     function showRegistration() {
         document.querySelectorAll('.modal').forEach(m => m.style.display='none');
@@ -226,18 +226,17 @@
     }
 
     function goToHub() {
-        loginTarget = null; activePlayer = null;
+        loginTarget = null;
         document.querySelectorAll('.modal').forEach(m => m.style.display='none');
         document.getElementById('ui-wrapper').style.display = 'none';
         document.getElementById('hub-screen').style.display = 'flex';
         document.getElementById('btn-hub-pA').innerText = game.pA.name || "---";
         document.getElementById('btn-hub-pB').innerText = game.pB.name || "---";
-        document.getElementById('bg-char').style.opacity = "0";
     }
 
     function startLogin(p) {
         loginTarget = p;
-        document.getElementById('login-msg').innerText = "OPERADOR: " + game[p].name;
+        document.getElementById('login-msg').innerText = "VINCULANDO: " + game[p].name;
         document.getElementById('login-scanner').style.display = 'flex';
         isProcessing = false;
     }
@@ -263,16 +262,10 @@
             document.getElementById('scan-line').style.display = 'none'; 
             pData.count++; sessionScanned = true;
             let isCorrect = (mode === 'NEURONAL' && game[activePlayer].role === 'HUMANO') || (mode === 'EM' && game[activePlayer].role === 'CYBORG') || (mode === 'MUTAGENO' && game[activePlayer].role === 'ADAPTOID');
-            let res = 0;
-            if (pData.count === 1) {
-                if (isCorrect) { res = Math.floor(Math.random() * 15) + 70; } 
-                else { res = Math.floor(Math.random() * 15); pData.blocked = true; sndFail.play(); }
-            } else {
-                if (isCorrect) { res = 100; sndSuccess.play(); document.getElementById('res-msg').innerText = "VÍNCULO CONFIRMADO"; } 
-                else { res = Math.floor(Math.random() * 10); sndFail.play(); }
-                pData.blocked = true;
-            }
-            pData.val = res; updateScanUI();
+            let res = (isCorrect) ? (pData.count === 1 ? 75 : 100) : (pData.count === 1 ? 10 : 0);
+            if(res >= 100) sndSuccess.play(); else if(res <= 10) sndFail.play();
+            pData.val = res; pData.blocked = (pData.count >= 2 || res < 50);
+            updateScanUI();
             document.getElementById('res-perc').innerText = res + "%";
             document.getElementById('res-modal').style.display = 'flex';
             save();
@@ -295,11 +288,10 @@
     function pressNum(n) { if(guess.length < 3) { guess += n; document.getElementById('mm-display').innerText = guess; } }
     function clearNum() { guess = ""; document.getElementById('mm-display').innerText = "---"; }
     function checkBypass() {
-        if(guess.length < 3) return;
         let s = game.pass, g = guess.split(""), pos = 0, num = 0, sC = [...s], gC = [...g];
         for(let i=0; i<3; i++) { if(gC[i] === sC[i]) { pos++; sC[i] = null; gC[i] = "X"; } }
         for(let i=0; i<3; i++) { if(gC[i] !== "X" && sC.includes(gC[i])) { num++; sC[sC.indexOf(gC[i])] = null; } }
-        alert(`POSICIÓN: ${pos} | NÚMERO: ${num}`); clearNum();
+        alert(`POS: ${pos} | NUM: ${num}`); clearNum();
     }
 </script>
 </body>
