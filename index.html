@@ -3,59 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EXODUS - V10.2 REBOOT</title>
+    <title>EXODUS - V10.3 PHOENIX</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
         body { background: var(--bg); color: var(--crt-green); font-family: 'Courier New', monospace; margin: 0; overflow: hidden; text-transform: uppercase; }
         .crt-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03)); background-size: 100% 3px, 3px 100%; pointer-events: none; z-index: 5000; }
-        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 5, 0, 0.98); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
+        .modal { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 5, 0, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 3000; padding: 20px; box-sizing: border-box; text-align: center; }
+        
+        /* CONTENEDOR DE CÁMARA ÚNICO */
+        #camera-master { 
+            width: 260px; 
+            height: 200px; 
+            border: 2px solid var(--cold-blue); 
+            box-shadow: 0 0 15px var(--cold-blue); 
+            background: #000;
+            overflow: hidden;
+            position: relative;
+            margin: 15px 0;
+        }
+        video { width: 100%; height: 100%; object-fit: cover; }
+        
         #ui-wrapper { display: none; flex-direction: column; height: 100vh; position: relative; z-index: 100; }
-        #header { height: 50px; border-bottom: 1px solid var(--crt-green); padding: 0 15px; background: rgba(0,20,0,0.9); display: flex; justify-content: space-between; align-items: center; }
-        #camera-container { position: relative; height: 40vh; overflow: hidden; background: #000; border-bottom: 2px solid #111; display: flex; align-items: center; justify-content: center; }
-        video { width: 100%; height: 100%; object-fit: cover; background: #000; }
+        #header { height: 50px; border-bottom: 1px solid var(--crt-green); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; background: #000; }
+        
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; flex-grow: 1; }
-        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 9px; border-radius: 4px; width: 100%; cursor: pointer; }
+        button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px 5px; font-family: inherit; font-size: 9px; border-radius: 4px; cursor: pointer; }
         .btn-main { padding: 25px; font-size: 1.2rem; border-color: #00ffff; color: #00ffff; width: 85%; font-weight: bold; }
-        #debug-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.8); color: yellow; font-size: 8px; padding: 5px; z-index: 6000; pointer-events: none; }
-        .scan-box { border: 2px solid var(--cold-blue); box-shadow: 0 0 15px var(--cold-blue); overflow: hidden; background: #000; }
+        #debug-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.9); color: #fff; font-size: 7px; padding: 5px; z-index: 6000; pointer-events: none; border-top: 1px solid #333; }
     </style>
 </head>
 <body>
 
-<div id="debug-log">SISTEMA LISTO. ESPERANDO INTERACCIÓN...</div>
+<div id="debug-log">SISTEMA APAGADO. PULSE INICIAR.</div>
 <div class="crt-overlay"></div>
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">EXODUS</h1>
-    <p>V10.2 [EMERGENCY BOOT]</p>
+    <p>V10.3 [PHOENIX ENGINE]</p>
     <button onclick="bootSystem()" class="btn-main">INICIAR MISIÓN</button>
 </div>
 
 <div id="setup-screen" class="modal">
-    <h2 style="color: var(--cold-blue)">CALIBRACIÓN</h2>
-    <div id="setup-progress" style="font-size: 5rem; color: white;">0/3</div>
-    <div class="scan-box" style="width: 240px; height: 160px;">
-        <video id="setup-video" playsinline muted></video>
-    </div>
-    <p>ESCANEA CÓDIGOS DE CONSOLA</p>
+    <h2 id="setup-title" style="color: var(--cold-blue)">CALIBRANDO...</h2>
+    <div id="setup-progress" style="font-size: 4rem; color: white;">0/3</div>
+    <div id="camera-anchor-setup"></div> <p style="font-size: 0.8rem;">ESCANEANDO CÓDIGOS DE CONSOLA</p>
 </div>
 
 <div id="ui-wrapper">
     <div id="header">
-        <button onclick="location.reload()" style="width: 70px; font-size: 8px;">RESET</button>
-        <span id="player-display" style="color: #00ffff;">TERMINAL</span>
+        <button onclick="location.reload()" style="width: 70px; font-size: 8px;">REINICIAR</button>
+        <span style="color: #00ffff; font-size: 10px;">OPERATIVO</span>
         <button style="width: 70px; font-size: 8px;">BYPASS</button>
     </div>
-    <div id="camera-container">
-        <video id="video" playsinline muted></video>
-        <canvas id="canvas" style="display:none"></canvas>
-    </div>
+    <div style="display: flex; justify-content: center; background: #000;">
+        <div id="camera-anchor-ui"></div> </div>
     <div class="btn-group">
-        <button style="grid-column: span 3; padding: 20px; margin-bottom: 10px; border-color: #00ffff;">BIO-LOG ACTIVADO</button>
-        <button>SCAN NEURONAL</button>
-        <button>SCAN ELECTROMAG.</button>
-        <button>SCAN MUTÁGENO</button>
+        <button style="grid-column: span 3; padding: 20px; border-color: #00ffff; margin-bottom: 5px;">BIO-LOG</button>
+        <button>SCAN A</button>
+        <button>SCAN B</button>
+        <button>SCAN C</button>
+    </div>
+</div>
+
+<div id="master-video-container" style="display: none;">
+    <div id="camera-master">
+        <video id="main-video" playsinline muted autoplay></video>
+        <canvas id="main-canvas" style="display:none"></canvas>
     </div>
 </div>
 
@@ -63,44 +77,55 @@
     let isProcessing = false;
     let consoles = [];
     const log = document.getElementById('debug-log');
-    
-    function writeLog(msg) { log.innerText = "LOG: " + msg; console.log(msg); }
+    const video = document.getElementById('main-video');
+    const cameraMaster = document.getElementById('camera-master');
 
-    // 1. FUNCIÓN DE ARRANQUE (Solo tras pulsar el botón)
+    function writeLog(msg) { log.innerText = "STATUS: " + msg; }
+
     async function bootSystem() {
-        writeLog("INICIANDO BOOT...");
+        writeLog("SOLICITANDO HARDWARE...");
         try {
+            // 1. Limpiar rastro
             localStorage.clear();
-            writeLog("MEMORIA LIMPIA. PIDIENDO CÁMARA...");
-            
+
+            // 2. Pedir cámara con constraints específicos para móvil
             const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment" } 
+                video: { 
+                    facingMode: "environment",
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                } 
             });
 
-            writeLog("CÁMARA CONCEDIDA.");
-            document.getElementById('setup-video').srcObject = stream;
-            document.getElementById('video').srcObject = stream;
+            writeLog("STREAM RECIBIDO. ARRANCANDO VIDEO...");
+            video.srcObject = stream;
             
-            // Cambiar pantalla
+            // 3. Forzar el play (Crítico para móviles)
+            await video.play();
+            writeLog("MOTOR DE VIDEO: OK.");
+
+            // 4. Mover el contenedor de cámara a la pantalla de calibración
+            document.getElementById('camera-anchor-setup').appendChild(cameraMaster);
+            
+            // 5. Cambiar de pantalla
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('setup-screen').style.display = 'flex';
             
             requestAnimationFrame(tick);
         } catch (err) {
-            writeLog("ERROR CRÍTICO: " + err.message);
-            alert("Error al activar cámara. Revisa los permisos.");
+            writeLog("ERROR: " + err.name + " - " + err.message);
+            alert("No se pudo activar la cámara. Asegúrate de estar en HTTPS y dar permisos.");
         }
     }
 
     function tick() {
-        const v = document.getElementById('setup-video');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-
-        if (v.readyState === v.HAVE_ENOUGH_DATA && !isProcessing) {
-            canvas.height = v.videoHeight;
-            canvas.width = v.videoWidth;
-            ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        if (video.readyState === video.HAVE_ENOUGH_DATA && !isProcessing) {
+            const canvas = document.getElementById('main-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
             const code = jsQR(ctx.getImageData(0,0,canvas.width,canvas.height).data, canvas.width, canvas.height);
             
             if (code) {
@@ -120,11 +145,14 @@
             document.getElementById('setup-progress').innerText = consoles.length + "/3";
             
             if (consoles.length === 3) {
-                writeLog("CALIBRACIÓN COMPLETA. ENTRANDO...");
+                writeLog("CALIBRACIÓN EXITOSA.");
                 setTimeout(() => {
+                    // Mover la cámara a la pantalla final
+                    document.getElementById('camera-anchor-ui').appendChild(cameraMaster);
                     document.getElementById('setup-screen').style.display = 'none';
                     document.getElementById('ui-wrapper').style.display = 'flex';
-                }, 1000);
+                    writeLog("TERMINAL LISTA.");
+                }, 800);
             }
             setTimeout(() => isProcessing = false, 1000);
         }
