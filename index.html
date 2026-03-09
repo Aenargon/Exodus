@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EXODUS - V10.4 FINAL ENGINE</title>
+    <title>EXODUS - V10.5 ULTRA-STABLE</title>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
     <style>
         :root { --crt-green: #2ecc71; --cold-blue: #a0d2eb; --danger-red: #ff3e3e; --bg: #050805; }
@@ -20,23 +20,27 @@
         
         .btn-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; flex-grow: 1; }
         button { background: #0d1a0d; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 12px 5px; font-family: inherit; font-size: 9px; border-radius: 4px; cursor: pointer; }
-        button:disabled { opacity: 0.3; }
+        button:disabled { opacity: 0.2; color: #555; }
         .btn-main { padding: 20px; font-size: 1.1rem; border-color: #00ffff; color: #00ffff; width: 85%; font-weight: bold; }
         input { background: black; color: var(--crt-green); border: 1px solid var(--crt-green); padding: 15px; text-align: center; font-size: 1.2rem; width: 80%; margin-bottom: 15px; }
         
         #scan-line { position: absolute; width: 100%; height: 4px; background: var(--crt-green); top: 0; display: none; box-shadow: 0 0 15px var(--crt-green); z-index: 1000; animation: moveScan 1.5s linear infinite; }
         @keyframes moveScan { 0% { top: 0%; } 100% { top: 100%; } }
-        #debug-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.9); color: #777; font-size: 7px; padding: 4px; z-index: 6000; pointer-events: none; }
+        #debug-log { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.9); color: #fff; font-size: 7px; padding: 4px; z-index: 6000; pointer-events: none; border-top: 1px solid #333; }
+        
+        /* Teclado numérico mejorado */
+        .numpad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 80%; }
+        .numpad button { font-size: 1.5rem; padding: 20px; }
     </style>
 </head>
 <body>
 
-<div id="debug-log">SISTEMA INACTIVO</div>
+<div id="debug-log">INICIANDO...</div>
 <div class="crt-overlay"></div>
 
 <div id="start-screen" class="modal" style="display: flex;">
     <h1 style="color: #00ffff; letter-spacing: 5px;">EXODUS</h1>
-    <p>CORE V10.4 [FINAL ENGINE]</p>
+    <p>SISTEMA OPERATIVO V10.5</p>
     <button onclick="bootSystem()" class="btn-main">INICIAR MISIÓN</button>
 </div>
 
@@ -48,58 +52,63 @@
 </div>
 
 <div id="reg-screen" class="modal">
-    <h2 id="reg-title">REGISTRO JUGADOR</h2>
+    <h2 id="reg-title">REGISTRO</h2>
     <div id="reg-step-name">
-        <input type="text" id="reg-input-name" placeholder="INTRODUCE NOMBRE..." autocomplete="off">
-        <button onclick="confirmName()" class="btn-main">VINCULAR ID</button>
+        <input type="text" id="reg-input-name" placeholder="NOMBRE..." autocomplete="off">
+        <button onclick="confirmName()" class="btn-main">CONFIRMAR</button>
     </div>
     <div id="reg-step-card" style="display:none">
-        <p style="color: var(--cold-blue)">ESCANEA TU CARTA DE PERSONAJE</p>
+        <p style="color: var(--cold-blue)">VINCULANDO CARTA DE PERSONAJE</p>
         <div id="camera-anchor-reg"></div>
     </div>
 </div>
 
 <div id="hub-screen" class="modal">
     <h2 style="color: #00ffff;">ACCESO OPERATIVO</h2>
-    <button id="btn-hub-pA" onclick="startLogin('pA')" style="width: 85%; padding: 25px; margin-bottom: 15px; font-size: 1.2rem;">---</button>
-    <button id="btn-hub-pB" onclick="startLogin('pB')" style="width: 85%; padding: 25px; font-size: 1.2rem;">---</button>
-    <button onclick="location.reload()" style="margin-top: 30px; border-color: var(--danger-red); color: var(--danger-red);">REINICIAR TODO</button>
+    <button id="btn-hub-pA" onclick="startLogin('pA')" style="width: 85%; padding: 25px; margin-bottom: 15px;">---</button>
+    <button id="btn-hub-pB" onclick="startLogin('pB')" style="width: 85%; padding: 25px;">---</button>
+    <button onclick="location.reload()" style="margin-top: 30px; border-color: red; color: red;">RESET</button>
 </div>
 
 <div id="login-screen" class="modal">
-    <h2 id="login-title" style="color: var(--cold-blue)">VERIFICACIÓN</h2>
+    <h2 id="login-title" style="color: var(--cold-blue)">ESCANEANDO...</h2>
     <div id="camera-anchor-login"></div>
     <p>MUESTRA TU CARTA A LA CÁMARA</p>
-    <button onclick="showHub()" style="border-color: #444; color: #444; width: 50%;">CANCELAR</button>
+    <button onclick="showHub()" style="border-color: #444; color: #444;">CANCELAR</button>
 </div>
 
 <div id="ui-wrapper">
     <div id="header">
-        <button onclick="showHub()" style="width: 70px; font-size: 8px;">LOGOUT</button>
-        <span id="display-name" style="color: #00ffff; font-weight: bold;">---</span>
-        <button onclick="toggleBypass()" style="width: 70px; font-size: 8px;">BYPASS</button>
+        <button onclick="showHub()" style="width: 70px;">LOGOUT</button>
+        <span id="display-name" style="color: #00ffff;">PLAYER</span>
+        <button onclick="toggleBypass()" style="width: 70px;">BYPASS</button>
     </div>
-    <div style="display: flex; justify-content: center; background: #000; border-bottom: 1px solid #111;">
+    <div style="display: flex; justify-content: center; background: #000; border-bottom: 1px solid #111; position: relative;">
         <div id="camera-anchor-ui" style="transform: scale(0.9);"></div>
         <div id="scan-line"></div>
     </div>
     <div class="btn-group">
-        <button id="btn-bio" onclick="openBio()" style="grid-column: span 3; padding: 20px; border-color: #00ffff; font-weight: bold;">BIO-LOG: ACCEDER AL ARCHIVO</button>
+        <button id="btn-bio" onclick="openBio()" style="grid-column: span 3; padding: 20px; border-color: #00ffff;">BIO-LOG: CARGAR ARCHIVO</button>
         <button id="btn-scan-NEURONAL" onclick="startScan('NEURONAL')">SCAN NEURONAL<br><span id="res-NEURONAL">--</span></button>
         <button id="btn-scan-EM" onclick="startScan('EM')">SCAN ELECTROMAG.<br><span id="res-EM">--</span></button>
         <button id="btn-scan-MUTAGENO" onclick="startScan('MUTAGENO')">SCAN MUTÁGENO<br><span id="res-MUTAGENO">--</span></button>
     </div>
 </div>
 
+<div id="video-modal" class="modal">
+    <video id="bio-video" controls style="width: 100%; border: 1px solid var(--crt-green);"></video>
+    <button onclick="closeVideo()" class="btn-main" style="margin-top: 20px;">CERRAR</button>
+</div>
+
 <div id="scan-modal" class="modal">
-    <h1 id="scan-perc" style="font-size: 5rem; color: white; margin: 0;">0%</h1>
+    <h1 id="scan-perc" style="font-size: 5rem; color: white;">0%</h1>
     <p id="scan-msg">ANÁLISIS COMPLETADO</p>
-    <button onclick="closeModal('scan-modal')" class="btn-main">VOLVER</button>
+    <button onclick="closeModal('scan-modal')" class="btn-main">ENTENDIDO</button>
 </div>
 
 <div id="bypass-screen" class="modal">
     <div id="bp-display" style="font-size: 3rem; border: 1px solid var(--cold-blue); width: 80%; margin-bottom: 20px;">---</div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 80%;">
+    <div class="numpad">
         <button onclick="bpKey('1')">1</button><button onclick="bpKey('2')">2</button><button onclick="bpKey('3')">3</button>
         <button onclick="bpKey('4')">4</button><button onclick="bpKey('5')">5</button><button onclick="bpKey('6')">6</button>
         <button onclick="bpKey('7')">7</button><button onclick="bpKey('8')">8</button><button onclick="bpKey('9')">9</button>
@@ -137,12 +146,11 @@
     function writeLog(m) { log.innerText = "SYS: " + m; }
 
     async function bootSystem() {
-        writeLog("INICIANDO HARDWARE...");
+        writeLog("SISTEMA ARRANCANDO...");
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             video.srcObject = stream;
             await video.play();
-            
             document.getElementById('camera-anchor-setup').appendChild(cam);
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('setup-screen').style.display = 'flex';
@@ -176,28 +184,29 @@
                 setTimeout(() => isProcessing = false, 1000);
             }
         }
-        // 2. REGISTRO PERSONAJE
+        // 2. REGISTRO
         else if (document.getElementById('reg-step-card').style.display === 'block') {
             if (data.includes("char_")) {
                 isProcessing = true;
-                game[regTarget].char = data.split('_')[1];
-                game[regTarget].role = ['HUMANO', 'CYBORG', 'ADAPTOID'][Math.floor(Math.random()*3)];
+                game[regTarget].char = data; // Guardamos el código completo
+                game[regTarget].role = data.includes("mechanic") ? "HUMANO" : (data.includes("cyborg") ? "CYBORG" : "ADAPTOID");
+                writeLog("VINCULADO: " + data);
                 if (regTarget === 'pA') { regTarget = 'pB'; showReg(); } else { showHub(); }
                 setTimeout(() => isProcessing = false, 1500);
             }
         }
-        // 3. LOGIN
-        else if (loginTarget) {
-            if (data.includes(game[loginTarget].char)) {
+        // 3. LOGIN (Aquí estaba el fallo)
+        else if (loginTarget && !activeP) {
+            if (data === game[loginTarget].char) {
                 isProcessing = true;
+                writeLog("ACCESO CONCEDIDO A " + loginTarget);
                 enterTerminal(loginTarget);
                 loginTarget = null;
-                setTimeout(() => isProcessing = false, 1500);
+                setTimeout(() => isProcessing = false, 2000);
             }
         }
     }
 
-    // NAVEGACIÓN
     function showReg() {
         hideAll();
         document.getElementById('reg-screen').style.display = 'flex';
@@ -213,23 +222,24 @@
         document.getElementById('reg-step-name').style.display = 'none';
         document.getElementById('reg-step-card').style.display = 'block';
         document.getElementById('camera-anchor-reg').appendChild(cam);
-        document.getElementById('reg-input-name').value = "";
     }
 
     function showHub() {
         hideAll();
-        document.getElementById('hub-screen').style.display = 'flex';
-        document.getElementById('btn-hub-pA').innerText = game.pA.name;
-        document.getElementById('btn-hub-pB').innerText = game.pB.name;
         activeP = null;
+        loginTarget = null;
+        document.getElementById('hub-screen').style.display = 'flex';
+        document.getElementById('btn-hub-pA').innerText = game.pA.name || "---";
+        document.getElementById('btn-hub-pB').innerText = game.pB.name || "---";
     }
 
     function startLogin(p) {
+        if (!game[p].name) return;
         hideAll();
         loginTarget = p;
-        document.getElementById('login-title').innerText = "VINCULANDO: " + game[p].name;
         document.getElementById('login-screen').style.display = 'flex';
         document.getElementById('camera-anchor-login').appendChild(cam);
+        writeLog("ESPERANDO CARTA DE " + game[p].name);
     }
 
     function enterTerminal(p) {
@@ -242,23 +252,24 @@
         updateUI();
     }
 
-    // ACCIONES TERMINAL
     function startScan(type) {
-        if (sessionScanned || game[activeP].scans[type] !== null) return;
+        if (sessionScanned || isProcessing) return;
         isProcessing = true;
         document.getElementById('scan-line').style.display = 'block';
-        // Simulación de animación
+        
         setTimeout(() => {
             document.getElementById('scan-line').style.display = 'none';
-            let correct = (type==='NEURONAL' && game[activeP].role==='HUMANO') || (type==='EM' && game[activeP].role==='CYBORG') || (type==='MUTAGENO' && game[activeP].role==='ADAPTOID');
-            let res = correct ? 100 : 12;
+            let isCorrect = (type==='NEURONAL' && game[activeP].role==='HUMANO') || 
+                            (type==='EM' && game[activeP].role==='CYBORG') || 
+                            (type==='MUTAGENO' && game[activeP].role==='ADAPTOID');
+            let res = isCorrect ? 100 : Math.floor(Math.random() * 20) + 5;
             game[activeP].scans[type] = res;
             sessionScanned = true;
             document.getElementById('scan-perc').innerText = res + "%";
             document.getElementById('scan-modal').style.display = 'flex';
             updateUI();
             isProcessing = false;
-        }, 2000);
+        }, 2500);
     }
 
     function updateUI() {
@@ -270,22 +281,32 @@
     }
 
     function openBio() {
-        window.open(`media/videos/${game[activeP].char}.mp4`, '_blank');
+        const v = document.getElementById('bio-video');
+        const charId = game[activeP].char.split('_')[1]; 
+        v.src = `media/videos/${charId}.mp4`;
+        document.getElementById('video-modal').style.display = 'flex';
+        v.play().catch(e => writeLog("Error vídeo: " + e));
     }
 
-    // BYPASS
+    function closeVideo() {
+        const v = document.getElementById('bio-video');
+        v.pause();
+        document.getElementById('video-modal').style.display = 'none';
+    }
+
     function toggleBypass() {
         let s = document.getElementById('bypass-screen');
         s.style.display = (s.style.display === 'flex') ? 'none' : 'flex';
-        bpCode = ""; document.getElementById('bp-display').innerText = "---";
+        bpClear();
     }
     function bpKey(n) { if(bpCode.length < 3) bpCode += n; document.getElementById('bp-display').innerText = bpCode; }
     function bpClear() { bpCode = ""; document.getElementById('bp-display').innerText = "---"; }
     function bpCheck() {
+        if(bpCode.length < 3) return;
         let s = game.pass, g = bpCode.split(""), pos=0, num=0, sC=[...s], gC=[...g];
         for(let i=0; i<3; i++) { if(gC[i]===sC[i]) { pos++; sC[i]=null; gC[i]="X"; } }
         for(let i=0; i<3; i++) { if(gC[i]!=="X" && sC.includes(gC[i])) { num++; sC[sC.indexOf(gC[i])]=null; } }
-        alert(`POSICIÓN CORRECTA: ${pos}\nNÚMERO CORRECTO: ${num}`);
+        alert(`BIO-ANALIZADOR:\n\nPOSICIONES CORRECTAS: ${pos}\nDÍGITOS PRESENTES: ${num}`);
         bpClear();
     }
 
